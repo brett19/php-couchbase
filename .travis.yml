@@ -1,0 +1,16 @@
+language: php
+
+php:
+  - 5.2
+  - 5.3
+  - 5.4
+  - 5.5
+
+before_script:
+  - phpize
+  - ./configure --enable-couchbase
+  - make all
+
+script: php -n -d output_buffering=0 -d memory_limit=-1
+    -d extension_dir=modules -d extension=couchbase.so
+    -r 'extension_loaded("couchbase") || exit(1);'

@@ -1,0 +1,19 @@
+ARG_WITH("couchbase", "Couchbase support", "no");
+
+if (PHP_COUCHBASE != "no") {
+    couchbase_source = 
+	    "couchbase.c " + 
+		"cluster.c " +
+		"bucket.c " +
+		"exception.c";
+	
+	if (CHECK_LIB("libcouchbase.lib", "couchbase", PHP_COUCHBASE) &&
+			CHECK_HEADER_ADD_INCLUDE("libcouchbase\\couchbase.h", "CFLAGS_COUCHBASE", PHP_COUCHBASE+"\\include;"+PHP_PHP_BUILD+"\\include\\libcouchbase")){
+		EXTENSION("couchbase", couchbase_source);
+		AC_DEFINE('HAVE_COUCHBASELIB', 1, 'Have Couchbase library');
+		MESSAGE("\tlibcouchbase build");
+	} else {
+		WARNING("couchbase not enabled; libraries and headers not found");
+		PHP_COUCHBASE = "no";
+	}
+}
