@@ -4,11 +4,13 @@ char *PCBC_PHP_CODESTR = \
 " *\n" \
 " * @author Brett Lawson\n" \
 " * @version 2.0.0\n" \
-" * @package \\n" \
+" * @package Couchbase\n" \
 " */\n" \
 "\n" \
 "/**\n" \
 " * Represents a cluster connection.\n" \
+" *\n" \
+" * @package Couchbase\n" \
 " */\n" \
 "class CouchbaseCluster {\n" \
 "    /**\n" \
@@ -26,7 +28,7 @@ char *PCBC_PHP_CODESTR = \
 "     * A list of hosts part of this cluster.\n" \
 "     */\n" \
 "    private $_hosts;\n" \
-"    \n" \
+"\n" \
 "    /**\n" \
 "     * @var string\n" \
 "     * @ignore\n" \
@@ -44,11 +46,12 @@ char *PCBC_PHP_CODESTR = \
 "     * @param string|array $hosts A string or array of hosts of Couchbase nodes.\n" \
 "     * @param string $username The username for the cluster.\n" \
 "     * @param string $password The password for the cluster.\n" \
+"     * @param boolean $usessl Whether to use secure connections to the cluster.\n" \
 "     * @param string $ccpath Path to the configuration cache file.\n" \
 "     *\n" \
 "     * @throws CouchbaseException\n" \
 "     */\n" \
-"    public function __construct($hosts = array('127.0.0.1:8091'), $username = '', $password = '', $ccpath = '') {\n" \
+"    public function __construct($hosts = array('127.0.0.1:8091'), $username = '', $password = '', $usessl = false, $ccpath = '') {\n" \
 "        $this->_me = new _CouchbaseCluster($hosts, $username, $password, $ccpath);\n" \
 "        $this->_hosts = $hosts;\n" \
 "        $this->_ccpath = $ccpath;\n" \
@@ -89,7 +92,7 @@ char *PCBC_PHP_CODESTR = \
 "        } else {\n" \
 "            $hosts = $queryhosts;\n" \
 "        }\n" \
-"        \n" \
+"\n" \
 "        return new CouchbaseQuerier($hosts);\n" \
 "    }\n" \
 "\n" \
@@ -129,6 +132,10 @@ char *PCBC_PHP_CODESTR = \
 " *\n" \
 " * Note: This class must be constructed by calling the openQuerier\n" \
 " * method of the CouchbaseCluster class.\n" \
+" *\n" \
+" * @package Couchbase\n" \
+" *\n" \
+" * @see CouchbaseCluster::openQuerier()\n" \
 " */\n" \
 "class CouchbaseQuerier {\n" \
 "    /**\n" \
@@ -160,26 +167,26 @@ char *PCBC_PHP_CODESTR = \
 "    public function query($dmlstring) {\n" \
 "        $hostidx = array_rand($this->_hosts, 1);\n" \
 "        $host = $this->_hosts[$hostidx];\n" \
-"        \n" \
+"\n" \
 "        $ch = curl_init();\n" \
 "        curl_setopt($ch, CURLOPT_URL, 'http://' . $host . '/query');\n" \
 "        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);\n" \
-"        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');                                                             \n" \
-"        curl_setopt($ch, CURLOPT_POSTFIELDS, $dmlstring);                                                                  \n" \
-"        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);                                                                      \n" \
-"        curl_setopt($ch, CURLOPT_HTTPHEADER, array(                                                                          \n" \
-"            'Content-Type: text/plain',                                                                                \n" \
-"            'Content-Length: ' . strlen($dmlstring))                                                                       \n" \
-"        );   \n" \
+"        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');\n" \
+"        curl_setopt($ch, CURLOPT_POSTFIELDS, $dmlstring);\n" \
+"        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\n" \
+"        curl_setopt($ch, CURLOPT_HTTPHEADER, array(\n" \
+"            'Content-Type: text/plain',\n" \
+"            'Content-Length: ' . strlen($dmlstring))\n" \
+"        );\n" \
 "        $result = curl_exec($ch);\n" \
 "        curl_close($ch);\n" \
-"        \n" \
+"\n" \
 "        $resjson = json_decode($result, true);\n" \
-"        \n" \
+"\n" \
 "        if (isset($resjson['error'])) {\n" \
 "            throw new CouchbaseException($resjson['error']['cause'], 999);\n" \
 "        }\n" \
-"        \n" \
+"\n" \
 "        return $resjson['resultset'];\n" \
 "    }\n" \
 "}\n" \
@@ -187,7 +194,21 @@ char *PCBC_PHP_CODESTR = \
 "/**\n" \
 " * Represents a durability enforced bucket connection.\n" \
 " *\n" \
+" * Note: This class must be constructed by calling the endure\n" \
+" * method of the CouchbaseBucket class.\n" \
+" *\n" \
+" * @property integer $operationTimeout\n" \
+" * @property integer $viewTimeout\n" \
+" * @property integer $durabilityInterval\n" \
+" * @property integer $durabilityTimeout\n" \
+" * @property integer $httpTimeout\n" \
+" * @property integer $configTimeout\n" \
+" * @property integer $configDelay\n" \
+" * @property integer $configNodeTimeout\n" \
+" * @property integer $htconfigIdleTimeout\n" \
+" *\n" \
 " * @private\n" \
+" * @package Couchbase\n" \
 " *\n" \
 " * @see CouchbaseBucket::endure()\n" \
 " */\n" \
@@ -271,33 +292,33 @@ char *PCBC_PHP_CODESTR = \
 "                    );\n" \
 "                }\n" \
 "            }\n" \
-"            \n" \
+"\n" \
 "            // Do the checks\n" \
 "            $dres = $this->_me->durability($chks, array(\n" \
 "                'persist_to' => $this->_persist,\n" \
 "                'replicate_to' => $this->_replicate\n" \
 "            ));\n" \
-"            \n" \
+"\n" \
 "            // Copy over the durability errors\n" \
 "            foreach ($dres as $key => $result) {\n" \
 "                if (!$result) {\n" \
 "                    $res[$key]->error = $result->error;\n" \
 "                }\n" \
 "            }\n" \
-"            \n" \
+"\n" \
 "            return $res;\n" \
 "        } else {\n" \
 "            if ($res->error) {\n" \
 "                return $res;\n" \
 "            }\n" \
-"            \n" \
+"\n" \
 "            $dres = $this->_me->durability(array(\n" \
 "                $id => array('cas' => $res->cas)\n" \
 "            ), array(\n" \
 "                'persist_to' => $this->_persist,\n" \
 "                'replicate_to' => $this->_replicate\n" \
 "            ));\n" \
-"            \n" \
+"\n" \
 "            if ($dres) {\n" \
 "                return $res;\n" \
 "            } else {\n" \
@@ -499,11 +520,23 @@ char *PCBC_PHP_CODESTR = \
 "        }\n" \
 "        return $this->_me->endure($reqs);\n" \
 "    }\n" \
-"    \n" \
+"\n" \
+"    /**\n" \
+"     * Magic function to handle the retrieval of various properties.  This\n" \
+"     * simply proxies the request to the underlying bucket object.\n" \
+"     *\n" \
+"     * @internal\n" \
+"     */\n" \
 "    public function __get($name) {\n" \
 "        return $this->_me->__get($name);\n" \
 "    }\n" \
-"    \n" \
+"\n" \
+"    /**\n" \
+"     * Magic function to handle the setting of various properties.  This\n" \
+"     * simply proxies the request to the underlying bucket object.\n" \
+"     *\n" \
+"     * @internal\n" \
+"     */\n" \
 "    public function __set($name, $value) {\n" \
 "        return $this->_me->__set($name, $value);\n" \
 "    }\n" \
@@ -511,6 +544,21 @@ char *PCBC_PHP_CODESTR = \
 "\n" \
 "/**\n" \
 " * Represents a bucket connection.\n" \
+" *\n" \
+" * Note: This class must be constructed by calling the openBucket\n" \
+" * method of the CouchbaseCluster class.\n" \
+" *\n" \
+" * @property integer $operationTimeout\n" \
+" * @property integer $viewTimeout\n" \
+" * @property integer $durabilityInterval\n" \
+" * @property integer $durabilityTimeout\n" \
+" * @property integer $httpTimeout\n" \
+" * @property integer $configTimeout\n" \
+" * @property integer $configDelay\n" \
+" * @property integer $configNodeTimeout\n" \
+" * @property integer $htconfigIdleTimeout\n" \
+" *\n" \
+" * @package Couchbase\n" \
 " *\n" \
 " * @see CouchbaseCluster::openBucket()\n" \
 " */\n" \
@@ -642,7 +690,7 @@ char *PCBC_PHP_CODESTR = \
 "        $info = explode('/', $ddocview);\n" \
 "        $res = $this->view($info[0], $info[1], $options);\n" \
 "        $out = array();\n" \
-"        \n" \
+"\n" \
 "        return $out;\n" \
 "    }\n" \
 "\n" \
@@ -713,7 +761,12 @@ char *PCBC_PHP_CODESTR = \
 "        }\n" \
 "        return new CouchbaseBucketDProxy($this->me, $this, $persist, $replicate);\n" \
 "    }\n" \
-"    \n" \
+"\n" \
+"    /**\n" \
+"     * Magic function to handle the retrieval of various properties.\n" \
+"     *\n" \
+"     * @internal\n" \
+"     */\n" \
 "    public function __get($name) {\n" \
 "        if ($name == 'operationTimeout') {\n" \
 "            return $this->me->getOption(COUCHBASE_CNTL_OP_TIMEOUT);\n" \
@@ -744,7 +797,12 @@ char *PCBC_PHP_CODESTR = \
 "            E_USER_NOTICE);\n" \
 "        return null;\n" \
 "    }\n" \
-"    \n" \
+"\n" \
+"    /**\n" \
+"     * Magic function to handle the setting of various properties.\n" \
+"     *\n" \
+"     * @internal\n" \
+"     */\n" \
 "    public function __set($name, $value) {\n" \
 "        if ($name == 'operationTimeout') {\n" \
 "            return $this->me->setOption(COUCHBASE_CNTL_OP_TIMEOUT, $value);\n" \
@@ -765,8 +823,8 @@ char *PCBC_PHP_CODESTR = \
 "        } else if ($name == 'htconfigIdleTimeout') {\n" \
 "            return $this->me->setOption(COUCHBASE_CNTL_HTCONFIG_IDLE_TIMEOUT, $value);\n" \
 "        }\n" \
-"        \n" \
-"    \n" \
+"\n" \
+"\n" \
 "        $trace = debug_backtrace();\n" \
 "        trigger_error(\n" \
 "            'Undefined property via __set(): ' . $name .\n" \
@@ -777,27 +835,36 @@ char *PCBC_PHP_CODESTR = \
 "    }\n" \
 "}\n" \
 "\n" \
-"define('COUCHBASE_VAL_MASK', 0x1F);\n" \
-"define('COUCHBASE_VAL_IS_STRING', 0);\n" \
-"define('COUCHBASE_VAL_IS_LONG', 1);\n" \
-"define('COUCHBASE_VAL_IS_DOUBLE', 2);\n" \
-"define('COUCHBASE_VAL_IS_BOOL', 3);\n" \
-"define('COUCHBASE_VAL_IS_SERIALIZED', 4);\n" \
-"define('COUCHBASE_VAL_IS_IGBINARY', 5);\n" \
-"define('COUCHBASE_VAL_IS_JSON', 6);\n" \
-"define('COUCHBASE_COMPRESSION_MASK', 0x7 << 5);\n" \
-"define('COUCHBASE_COMPRESSION_NONE', 0 << 5);\n" \
-"define('COUCHBASE_COMPRESSION_ZLIB', 1 << 5);\n" \
-"define('COUCHBASE_COMPRESSION_FASTLZ', 2 << 5);\n" \
-"define('COUCHBASE_COMPRESSION_MCISCOMPRESSED', 1 << 4);\n" \
+"/*\n" \
+" * The following is a list of constants used for flags and datatype\n" \
+" * encoding and decoding by the built in transcoders.\n" \
+" */\n" \
 "\n" \
-"define('COUCHBASE_SERTYPE_JSON', 0);\n" \
-"define('COUCHBASE_SERTYPE_IGBINARY', 1);\n" \
-"define('COUCHBASE_SERTYPE_PHP', 2);\n" \
-"define('COUCHBASE_CMPRTYPE_NONE', 0);\n" \
-"define('COUCHBASE_CMPRTYPE_ZLIB', 1);\n" \
-"define('COUCHBASE_CMPRTYPE_FASTLZ', 2);\n" \
+"/** @internal */ define('COUCHBASE_VAL_MASK', 0x1F);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_STRING', 0);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_LONG', 1);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_DOUBLE', 2);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_BOOL', 3);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_SERIALIZED', 4);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_IGBINARY', 5);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_JSON', 6);\n" \
+"/** @internal */ define('COUCHBASE_COMPRESSION_MASK', 0x7 << 5);\n" \
+"/** @internal */ define('COUCHBASE_COMPRESSION_NONE', 0 << 5);\n" \
+"/** @internal */ define('COUCHBASE_COMPRESSION_ZLIB', 1 << 5);\n" \
+"/** @internal */ define('COUCHBASE_COMPRESSION_FASTLZ', 2 << 5);\n" \
+"/** @internal */ define('COUCHBASE_COMPRESSION_MCISCOMPRESSED', 1 << 4);\n" \
+"/** @internal */ define('COUCHBASE_SERTYPE_JSON', 0);\n" \
+"/** @internal */ define('COUCHBASE_SERTYPE_IGBINARY', 1);\n" \
+"/** @internal */ define('COUCHBASE_SERTYPE_PHP', 2);\n" \
+"/** @internal */ define('COUCHBASE_CMPRTYPE_NONE', 0);\n" \
+"/** @internal */ define('COUCHBASE_CMPRTYPE_ZLIB', 1);\n" \
+"/** @internal */ define('COUCHBASE_CMPRTYPE_FASTLZ', 2);\n" \
 "\n" \
+"/**\n" \
+" * The default options for V1 encoding when using the default\n" \
+" * transcoding functionality.\n" \
+" * @internal\n" \
+" */\n" \
 "$COUCHBASE_DEFAULT_ENCOPTS = array(\n" \
 "    'sertype' => COUCHBASE_SERTYPE_PHP,\n" \
 "    'cmprtype' => COUCHBASE_CMPRTYPE_NONE,\n" \
@@ -805,17 +872,26 @@ char *PCBC_PHP_CODESTR = \
 "    'cmprfactor' => 1.3\n" \
 ");\n" \
 "\n" \
-"\n" \
+"/**\n" \
+" * Performs encoding of user provided types into binary form for\n" \
+" * on the server according to the original PHP SDK specification.\n" \
+" *\n" \
+" * @internal\n" \
+" *\n" \
+" * @param $value The value passed by the user\n" \
+" * @param $options Various encoding options\n" \
+" * @return array An array specifying the bytes, flags and datatype to store\n" \
+" */\n" \
 "function couchbase_basic_encoder_v1($value, $options) {\n" \
 "    $data = NULL;\n" \
 "    $flags = 0;\n" \
 "    $datatype = 0;\n" \
-"    \n" \
+"\n" \
 "    $sertype = $options['sertype'];\n" \
 "    $cmprtype = $options['cmprtype'];\n" \
 "    $cmprthresh = $options['cmprthresh'];\n" \
 "    $cmprfactor = $options['cmprfactor'];\n" \
-"    \n" \
+"\n" \
 "    $vtype = gettype($value);\n" \
 "    if ($vtype == 'string') {\n" \
 "        $flags = COUCHBASE_VAL_IS_STRING;\n" \
@@ -841,18 +917,18 @@ char *PCBC_PHP_CODESTR = \
 "            $data = igbinary_serialize($value);\n" \
 "        } else if ($sertype == COUCHBASE_SERTYPE_PHP) {\n" \
 "            $flags = COUCHBASE_VAL_IS_SERIALIZED;\n" \
-"            $data = serialize($value); \n" \
+"            $data = serialize($value);\n" \
 "        }\n" \
 "    }\n" \
-"    \n" \
+"\n" \
 "    if (strlen($data) < $cmprthresh) {\n" \
 "        $cmprtype = COUCHBASE_CMPRTYPE_NONE;\n" \
 "    }\n" \
-"    \n" \
+"\n" \
 "    if ($cmprtype != COUCHBASE_CMPRTYPE_NONE) {\n" \
 "        $cmprdata = NULL;\n" \
 "        $cmprflags = COUCHBASE_COMPRESSION_NONE;\n" \
-"    \n" \
+"\n" \
 "        if ($cmprtype == COUCHBASE_CMPRTYPE_ZLIB) {\n" \
 "            $cmprdata = gzencode($data);\n" \
 "            $cmprflags = COUCHBASE_COMPRESSION_ZLIB;\n" \
@@ -860,29 +936,41 @@ char *PCBC_PHP_CODESTR = \
 "            $cmprdata = fastlz_compress($data);\n" \
 "            $cmprflags = COUCHBASE_COMPRESSION_FASTLZ;\n" \
 "        }\n" \
-"        \n" \
+"\n" \
 "        if ($cmprdata != NULL) {\n" \
 "            if (strlen($data) > strlen($cmprdata) * $cmprfactor) {\n" \
 "                $data = $cmprdata;\n" \
 "                $flags |= $cmprflags;\n" \
-"                $flags |= COUCHBASE_COMPRESSION_MCISCOMPRESSED; \n" \
+"                $flags |= COUCHBASE_COMPRESSION_MCISCOMPRESSED;\n" \
 "            }\n" \
 "        }\n" \
 "    }\n" \
 "\n" \
 "    return array($data, $flags, $datatype);\n" \
 "}\n" \
+"\n" \
+"/**\n" \
+" * Performs decoding of the server provided binary data into\n" \
+" * PHP types according to the original PHP SDK specification.\n" \
+" *\n" \
+" * @internal\n" \
+" *\n" \
+" * @param $bytes The binary received from the server\n" \
+" * @param $flags The flags received from the server\n" \
+" * @param $datatype The datatype received from the server\n" \
+" * @return mixed The resulting decoded value\n" \
+" */\n" \
 "function couchbase_basic_decoder_v1($bytes, $flags, $datatype) {\n" \
 "    $sertype = $flags & COUCHBASE_VAL_MASK;\n" \
 "    $cmprtype = $flags & COUCHBASE_COMPRESSION_MASK;\n" \
-"    \n" \
+"\n" \
 "    $data = $bytes;\n" \
 "    if ($cmprtype == COUCHBASE_COMPRESSION_ZLIB) {\n" \
 "        $bytes = gzdecode($bytes);\n" \
 "    } else if ($cmprtype == COUCHBASE_COMPRESSION_FASTLZ) {\n" \
 "        $data = fastlz_decompress($bytes);\n" \
 "    }\n" \
-"    \n" \
+"\n" \
 "    $retval = NULL;\n" \
 "    if ($sertype == COUCHBASE_VAL_IS_STRING) {\n" \
 "        $retval = $data;\n" \
@@ -903,17 +991,43 @@ char *PCBC_PHP_CODESTR = \
 "    return $retval;\n" \
 "}\n" \
 "\n" \
+"/**\n" \
+" * Default passthru encoder which simply passes data\n" \
+" * as-is rather than performing any transcoding.\n" \
+" *\n" \
+" * @internal\n" \
+" */\n" \
 "function couchbase_passthru_encoder($value) {\n" \
 "    return $value;\n" \
 "}\n" \
+"\n" \
+"/**\n" \
+" * Default passthru encoder which simply passes data\n" \
+" * as-is rather than performing any transcoding.\n" \
+" *\n" \
+" * @internal\n" \
+" */\n" \
 "function couchbase_passthru_decoder($bytes, $flags, $datatype) {\n" \
 "    return $bytes;\n" \
 "}\n" \
 "\n" \
+"/**\n" \
+" * The default encoder for the client.  Currently invokes the\n" \
+" * v1 encoder directly with the default set of encoding options.\n" \
+" *\n" \
+" * @internal\n" \
+" */\n" \
 "function couchbase_default_encoder($value) {\n" \
 "    global $COUCHBASE_DEFAULT_ENCOPTS;\n" \
 "    return couchbase_basic_encoder_v1($value, $COUCHBASE_DEFAULT_ENCOPTS);\n" \
 "}\n" \
+"\n" \
+"/**\n" \
+" * The default decoder for the client.  Currently invokes the\n" \
+" * v1 decoder directly.\n" \
+" *\n" \
+" * @internal\n" \
+" */\n" \
 "function couchbase_default_decoder($bytes, $flags, $datatype) {\n" \
 "    return couchbase_basic_decoder_v1($bytes, $flags, $datatype);\n" \
 "}\n" \
