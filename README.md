@@ -9,7 +9,7 @@ handle communicating to the cluster over the Couchbase binary protocol.
 
 ## Useful Links
 
-Source - http://github.com/brett19/php-couchbase
+Source - http://github.com/couchbaselabs/php-couchbase
 
 Bug Tracker - http://www.couchbase.com/issues/browse/PCBC
 
@@ -65,7 +65,7 @@ numerous examples and samples.
 ## Source Control
 
 The source code is available at
-[https://github.com/brett19/php-couchbase](https://github.com/brett19/php-couchbase).
+[https://github.com/couchbaselabs/php-couchbase](https://github.com/couchbaselabs/php-couchbase).
 
 To execute our test suite, simply install and execute phpunit against your
 checked out source code.
@@ -77,5 +77,5 @@ Copyright 2013 Couchbase Inc.
 Licensed under the Apache License, Version 2.0.
 
 See
-[LICENSE](https://github.com/brett19/php-couchbase/blob/master/LICENSE)
+[LICENSE](https://github.com/couchbaselabs/php-couchbase/blob/master/LICENSE)
 for further details.
