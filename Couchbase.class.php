@@ -522,8 +522,21 @@ class CouchbaseBucketDProxy {
     }
 
     /**
-     * Magic function to handle the retrieval of various properties.  This
-     * simply proxies the request to the underlying bucket object.
+     * See referenced CouchbaseBucket parent method.
+     *
+     * @see CouchbaseBucket::setTranscoder() CouchbaseBucket::setTranscoder()
+     *
+     * @param string $encoder The encoder function name
+     * @param string $decoder The decoder function name
+     */
+    public function setTranscoder($encoder, $decoder) {
+        return $this->_me->setTranscoder($encoder, $decoder);
+    }
+
+    /**
+     * See referenced CouchbaseBucket parent method.
+     *
+     * @see CouchbaseBucket::__get() CouchbaseBucket::__get()
      *
      * @internal
      */
@@ -532,8 +545,9 @@ class CouchbaseBucketDProxy {
     }
 
     /**
-     * Magic function to handle the setting of various properties.  This
-     * simply proxies the request to the underlying bucket object.
+     * See referenced CouchbaseBucket parent method.
+     *
+     * @see CouchbaseBucket::__set() CouchbaseBucket::__set()
      *
      * @internal
      */
@@ -760,6 +774,16 @@ class CouchbaseBucket {
             $replicate = $reqs['replicate_to'];
         }
         return new CouchbaseBucketDProxy($this->me, $this, $persist, $replicate);
+    }
+
+    /**
+     * Sets custom encoder and decoder functions for handling serialization.
+     *
+     * @param string $encoder The encoder function name
+     * @param string $decoder The decoder function name
+     */
+    public function setTranscoder($encoder, $decoder) {
+        return $this->me->setTranscoder($encoder, $decoder);
     }
 
     /**

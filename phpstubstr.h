@@ -522,8 +522,21 @@ char *PCBC_PHP_CODESTR = \
 "    }\n" \
 "\n" \
 "    /**\n" \
-"     * Magic function to handle the retrieval of various properties.  This\n" \
-"     * simply proxies the request to the underlying bucket object.\n" \
+"     * See referenced CouchbaseBucket parent method.\n" \
+"     *\n" \
+"     * @see CouchbaseBucket::setTranscoder() CouchbaseBucket::setTranscoder()\n" \
+"     *\n" \
+"     * @param string $encoder The encoder function name\n" \
+"     * @param string $decoder The decoder function name\n" \
+"     */\n" \
+"    public function setTranscoder($encoder, $decoder) {\n" \
+"        return $this->_me->setTranscoder($encoder, $decoder);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * See referenced CouchbaseBucket parent method.\n" \
+"     *\n" \
+"     * @see CouchbaseBucket::__get() CouchbaseBucket::__get()\n" \
 "     *\n" \
 "     * @internal\n" \
 "     */\n" \
@@ -532,8 +545,9 @@ char *PCBC_PHP_CODESTR = \
 "    }\n" \
 "\n" \
 "    /**\n" \
-"     * Magic function to handle the setting of various properties.  This\n" \
-"     * simply proxies the request to the underlying bucket object.\n" \
+"     * See referenced CouchbaseBucket parent method.\n" \
+"     *\n" \
+"     * @see CouchbaseBucket::__set() CouchbaseBucket::__set()\n" \
 "     *\n" \
 "     * @internal\n" \
 "     */\n" \
@@ -760,6 +774,16 @@ char *PCBC_PHP_CODESTR = \
 "            $replicate = $reqs['replicate_to'];\n" \
 "        }\n" \
 "        return new CouchbaseBucketDProxy($this->me, $this, $persist, $replicate);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Sets custom encoder and decoder functions for handling serialization.\n" \
+"     *\n" \
+"     * @param string $encoder The encoder function name\n" \
+"     * @param string $decoder The decoder function name\n" \
+"     */\n" \
+"    public function setTranscoder($encoder, $decoder) {\n" \
+"        return $this->me->setTranscoder($encoder, $decoder);\n" \
 "    }\n" \
 "\n" \
 "    /**\n" \
