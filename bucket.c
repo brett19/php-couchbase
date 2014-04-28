@@ -7,7 +7,7 @@
 
 #define PHP_CAS_RES_NAME "CAS"
 
-enum {
+enum durability_t {
 	PERSISTTO_ONE = 1,
 	PERSISTTO_TWO = 2,
 	PERSISTTO_THREE = 4,
@@ -15,7 +15,7 @@ enum {
 	REPLICATETO_ONE = 1 << 4,
 	REPLICATETO_TWO = 2 << 4,
 	REPLICATETO_THREE = 4 << 4
-} durability_t;
+}
 
 #define PCBC_CHECK_ZVAL(v,t,m) \
 	if (v && Z_TYPE_P(v) != t) { \
