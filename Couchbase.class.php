@@ -7,6 +7,144 @@
  * @package Couchbase
  */
 
+function _cbdsn_normalize($dsnObj) {
+    $out = array();
+
+    if (isset($dsnObj['scheme'])) {
+        $out['scheme'] = $dsnObj['scheme'];
+    } else {
+        $out['scheme'] = '';
+    }
+
+    $out['hosts'] = array();
+    if (isset($dsnObj['hosts'])) {
+        if (is_string($dsnObj['hosts'])) {
+            $dsnObj['hosts'] = array($dsnObj['hosts']);
+        }
+
+        foreach($dsnObj['hosts'] as $host) {
+            if (is_string($host)) {
+                $portPos = strstr($host, ':');
+                if ($portPos) {
+                    $hostName = substr($host, 0, $portPos);
+                    $portNum = intval(substr($host, $portPos+1));
+                    array_push($out['hosts'], array(
+                        $hostName, $portNum
+                    ));
+                } else {
+                    array_push($out['hosts'], $host);
+                }
+            } else {
+                array_push($out['hosts'], $host);
+            }
+        }
+    }
+
+    if (isset($dsnObj['bucket'])) {
+        $out['bucket'] = $dsnObj['bucket'];
+    } else {
+        $out['bucket'] = 'default';
+    }
+
+    if (isset($dsnObj['options'])) {
+        $out['options'] = $dsnObj['options'];
+    } else {
+        $out['options'] = array();
+    }
+
+    return $out;
+}
+function cbdsn_normalize($dsn) {
+    if (is_string($dsn)) {
+        return _cbdsn_stringify(
+            _cbdsn_normalize(
+                _cbdsn_parse($dsn)
+            )
+        );
+    }
+    return _cbdsn_normalize($dsn);
+}
+
+function _cbdsn_parse($dsn) {
+    $out = array();
+
+    if (!$dsn) {
+        return $out;
+    }
+
+    preg_match("/((.*):\\/\\/)?([^\\/?]*)(\\/([^\\?]*))?(\\?(.*))?/", $dsn, $parts);
+    if (isset($parts[2])) {
+        $out['scheme'] = $parts[2];
+    }
+    if (isset($parts[3])) {
+        $out['hosts'] = array();
+
+        preg_match_all("/([^;\\,\\:]+)(:([0-9]*))?(;\\,)?/", $parts[3], $hosts, PREG_SET_ORDER);
+        foreach($hosts as $host) {
+            array_push($out['hosts'], array(
+                $host[1],
+                isset($host[3]) ? intval($host[3]) : 0
+            ));
+        }
+    }
+    if (isset($parts[5])) {
+        $out['bucket'] = $parts[5];
+    }
+    if (isset($parts[7])) {
+        $out['options'] = array();
+
+        preg_match_all("/([^=]*)=([^&?]*)[&?]?/", $parts[7], $kvs, PREG_SET_ORDER);
+        foreach($kvs as $kv) {
+            $out['options'][urldecode($kv[1])] = urldecode($kv[2]);
+        }
+    }
+
+    return $out;
+}
+function cbdsn_parse($dsn) {
+    return _cbdsn_normalize(_cbdsn_parse($dsn));
+}
+
+function _cbdsn_stringify($dsnObj) {
+    $dsn = '';
+
+    if ($dsnObj['scheme']) {
+        $dsn .= $dsnObj['scheme'] . '://';
+    }
+
+    foreach($dsnObj['hosts'] as $i => $host) {
+        if ($i !== 0) {
+            $dsn .= ',';
+        }
+        $dsn .= $host[0];
+        if ($host[1]) {
+            $dsn .= ':' . $host[1];
+        }
+    }
+
+    if ($dsnObj['bucket']) {
+        $dsn .= '/' . $dsnObj['bucket'];
+    }
+
+    if ($dsnObj['options']) {
+        $isFirstOption = true;
+        foreach($dsnObj['options'] as $k => $v) {
+            if ($isFirstOption) {
+                $dsn .= '?';
+                $isFirstOption = false;
+            } else {
+                $dsn .= '&';
+            }
+            $dsn .= urlencode($k) . '=' . urlencode($v);
+        }
+    }
+
+    return $dsn;
+}
+function cbdsn_stringify($dsnObj) {
+    return _cbdsn_stringify(_cbdsn_normalize($dsnObj));
+}
+
 /**
  * Represents a cluster connection.
  *
@@ -22,39 +160,28 @@ class CouchbaseCluster {
     private $_me;
 
     /**
-     * @var array
-     * @ignore
-     *
-     * A list of hosts part of this cluster.
-     */
-    private $_hosts;
-
-    /**
      * @var string
      * @ignore
      *
-     * The path to the configuration cache file.
+     * A cluster DSN to connect with.
      */
-    private $_ccpath;
+    private $_dsn;
 
     /**
      * Creates a connection to a cluster.
      *
      * Creates a CouchbaseCluster object and begins the bootstrapping
-     * process neccessary for communications with the Couchbase Server.
+     * process necessary for communications with the Couchbase Server.
      *
-     * @param string|array $hosts A string or array of hosts of Couchbase nodes.
+     * @param string $dsn A cluster DSn to connect with.
      * @param string $username The username for the cluster.
      * @param string $password The password for the cluster.
-     * @param boolean $usessl Whether to use secure connections to the cluster.
-     * @param string $ccpath Path to the configuration cache file.
      *
      * @throws CouchbaseException
      */
-    public function __construct($hosts = array('127.0.0.1:8091'), $username = '', $password = '', $usessl = false, $ccpath = '') {
-        $this->_me = new _CouchbaseCluster($hosts, $username, $password, $ccpath);
-        $this->_hosts = $hosts;
-        $this->_ccpath = $ccpath;
+    public function __construct($dsn = 'http://127.0.0.1/', $username = '', $password = '') {
+        $this->_me = new _CouchbaseCluster($dsn, $username, $password);
+        $this->_dsn = cbdsn_parse($dsn);
     }
 
     /**
@@ -69,7 +196,10 @@ class CouchbaseCluster {
      * @see CouchbaseBucket CouchbaseBucket
      */
     public function openBucket($name = 'default', $password = '') {
-        return new CouchbaseBucket($this->_hosts, $name, $password, $this->_ccpath);
+        $bucketDsn = cbdsn_normalize($this->_dsn);
+        $bucketDsn['bucket'] = $name;
+        $dsnStr = cbdsn_stringify($bucketDsn);
+        return new CouchbaseBucket($dsnStr, $name, $password);
     }
 
     /**
@@ -599,14 +729,14 @@ class CouchbaseBucket {
      * @private
      * @ignore
      *
-     * @param $hosts A list of hosts for the cluster.
-     * @param $name The name of the bucket to connect to.
-     * @param $password The password to authenticate with.
+     * @param string $dsn A cluster DSN to connect with.
+     * @param string $name The name of the bucket to connect to.
+     * @param string $password The password to authenticate with.
      *
      * @private
      */
-    public function __construct($hosts, $name, $password, $ccpath) {
-        $this->me = new _CouchbaseBucket($hosts, $name, $password, $ccpath);
+    public function __construct($dsn, $name, $password) {
+        $this->me = new _CouchbaseBucket($dsn, $name, $password);
         $this->me->setTranscoder("couchbase_default_encoder", "couchbase_default_decoder");
         $this->name = $name;
     }

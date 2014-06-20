@@ -15,7 +15,7 @@ enum durability_t {
 	REPLICATETO_ONE = 1 << 4,
 	REPLICATETO_TWO = 2 << 4,
 	REPLICATETO_THREE = 4 << 4
-}
+};
 
 #define PCBC_CHECK_ZVAL(v,t,m) \
 	if (v && Z_TYPE_P(v) != t) { \
@@ -411,70 +411,38 @@ zend_class_entry *bucket_ce;
 PHP_METHOD(Bucket, __construct)
 {
 	bucket_object *data = PHP_THISOBJ();
-	zval *zhosts = NULL;
+	zval *zdsn = NULL;
 	zval *zname = NULL;
 	zval *zpassword = NULL;
-	zval *zccache = NULL;
-	char *hosts = NULL;
+	char *dsn = NULL;
 	char *name = NULL;
 	char *password = NULL;
-	char *ccache = NULL;
 	lcb_error_t err;
 	lcb_t instance;
 	struct lcb_create_st create_options;
 	char *connkey = NULL;
 	bucket_connection *conn_iter;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|zzzz",
-	        &zhosts, &zname, &zpassword, &zccache) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|zzz",
+	        &zdsn, &zname, &zpassword) == FAILURE) {
 		RETURN_NULL();
 	}
 
-	if (zhosts) {
-		if (Z_TYPE_P(zhosts) == IS_STRING) {
-		    hosts = estrndup(Z_STRVAL_P(zhosts), Z_STRLEN_P(zhosts));
-		} else if (Z_TYPE_P(zhosts) == IS_ARRAY) {
-			zval **host = NULL;
-			HashTable *hosts_hash = Z_ARRVAL_P(zhosts);
-			HashPosition hosts_ptr;
-			int ii;
-
-			spprintf(&hosts, 0, "");
-
-			for(ii = 0, zend_hash_internal_pointer_reset_ex(hosts_hash, &hosts_ptr);
-					zend_hash_get_current_data_ex(hosts_hash, (void**) &host, &hosts_ptr) == SUCCESS;
-					zend_hash_move_forward_ex(hosts_hash, &hosts_ptr), ++ii) {
-
-				if (Z_TYPE_PP(host) == IS_STRING) {
-					char *tmp_host_list = NULL;
-					if (ii > 0) {
-						spprintf(&tmp_host_list, 0, "%s;%s", hosts, Z_STRVAL_PP(host));
-					} else {
-						spprintf(&tmp_host_list, 0, "%s", Z_STRVAL_PP(host));
-					}
-					efree(hosts);
-					hosts = tmp_host_list;
-				} else {
-					php_printf("Expected proper host in array\n");
-					efree(hosts);
-					RETURN_NULL();
-				}
-
-			}
-		} else {
-			php_printf("Expected proper hosts\n");
-			RETURN_NULL();
-		}
-	} else {
-		spprintf(&hosts, 0, "localhost:8091");
-	}
+    if (zdsn) {
+        if (Z_TYPE_P(zdsn) == IS_STRING) {
+            dsn = estrndup(Z_STRVAL_P(zdsn), Z_STRLEN_P(zdsn));
+        } else {
+            php_printf("Expected dsn as string\n");
+            RETURN_NULL();
+        }
+    }
 
 	if (zname) {
 		if (Z_TYPE_P(zname) == IS_STRING) {
 		    name = estrndup(Z_STRVAL_P(zname), Z_STRLEN_P(zname));
 		} else {
 			php_printf("Expected bucket name as string\n");
-			if (hosts) efree(hosts);
+			if (dsn) efree(dsn);
 			RETURN_NULL();
 		}
 	}
@@ -484,32 +452,17 @@ PHP_METHOD(Bucket, __construct)
 		    password = estrndup(Z_STRVAL_P(zpassword), Z_STRLEN_P(zpassword));
 		} else {
 			php_printf("Expected bucket password as string\n");
-			if (hosts) efree(hosts);
+			if (dsn) efree(dsn);
 			if (name) efree(name);
 			RETURN_NULL();
 		}
 	}
 
-	if (zccache) {
-	    if (Z_TYPE_P(zccache) == IS_STRING) {
-	        ccache = estrndup(Z_STRVAL_P(zccache), Z_STRLEN_P(zccache));
-	    } else {
-            php_printf("Expected config cache path as string\n");
-            if (hosts) efree(hosts);
-            if (name) efree(name);
-            if (password) efree(password);
-            RETURN_NULL();
-	    }
-	}
+	spprintf(&connkey, 512, "%s|%s|%s",
+            dsn ? dsn : "",
+	        name ? name : "",
+	        password ? password : "");
 
-	if (hosts && name) {
-	    spprintf(&connkey, 512, "%s|%s", hosts, name);
-	} else if(hosts) {
-	    spprintf(&connkey, 512, "%s|default", hosts);
-	} else {
-	    spprintf(&connkey, 512, "localhost:8091|default");
-	}
-	
 	conn_iter = first_conn;
 	while (conn_iter) {
 	    if (strcmp(conn_iter->key, connkey) == 0) {
@@ -521,28 +474,15 @@ PHP_METHOD(Bucket, __construct)
 	if (!conn_iter)
 	{
         memset(&create_options, 0, sizeof(create_options));
-        create_options.v.v1.host = hosts;
-        create_options.v.v1.bucket = name;
-        create_options.v.v1.passwd = password;
+        create_options.version = 3;
+        create_options.v.v3.dsn = dsn;
+        create_options.v.v3.username = name;
+        create_options.v.v3.passwd = password;
+        err = lcb_create(&instance, &create_options);
 
-	    if (!ccache) {
-            err = lcb_create(&instance, &create_options);
-	    } else {
-			struct lcb_cached_config_st cache_config = { 0 };
-			cache_config.createopt = create_options;
-			cache_config.cachefile = ccache;
-		
-            err = lcb_create_compat(
-                LCB_CACHED_CONFIG,
-                &create_options,
-                &instance,
-                NULL);
-	    }
-
-        if (hosts) efree(hosts);
+        if (dsn) efree(dsn);
         if (name) efree(name);
         if (password) efree(password);
-        if (ccache) efree(ccache);
 
         if (err != LCB_SUCCESS) {
             zend_throw_exception_object(create_lcb_exception(err TSRMLS_CC) TSRMLS_CC);
@@ -583,10 +523,9 @@ PHP_METHOD(Bucket, __construct)
             }
         }
 	} else {
-        if (hosts) efree(hosts);
+        if (dsn) efree(dsn);
         if (name) efree(name);
         if (password) efree(password);
-        if (ccache) efree(ccache);
 
 	    data->conn = conn_iter;
 	}

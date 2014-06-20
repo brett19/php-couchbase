@@ -8,7 +8,7 @@ class BucketTest extends CouchbaseTestCase {
      * Test that connections with invalid details fail.
      */
     function testBadPass() {
-        $h = new CouchbaseCluster($this->testHost);
+        $h = new CouchbaseCluster($this->testDsn);
 
         $this->wrapException(function() use($h) {
             $h->openBucket('default', 'bad_pass');
@@ -20,7 +20,7 @@ class BucketTest extends CouchbaseTestCase {
      * Test that connections with invalid details fail.
      */
     function testBadBucket() {
-        $h = new CouchbaseCluster($this->testHost);
+        $h = new CouchbaseCluster($this->testDsn);
 
         $this->wrapException(function() use($h) {
             $h->openBucket('bad_bucket');
@@ -32,7 +32,7 @@ class BucketTest extends CouchbaseTestCase {
      * Test that a connection with accurate details works.
      */
     function testConnect() {
-        $h = new CouchbaseCluster($this->testHost);
+        $h = new CouchbaseCluster($this->testDsn);
         $b = $h->openBucket();
         return $b;
     }
@@ -318,7 +318,7 @@ class BucketTest extends CouchbaseTestCase {
      *   changes do not affect later tests
      */
     function testOptionVals() {
-        $h = new CouchbaseCluster($this->testHost);
+        $h = new CouchbaseCluster($this->testDsn);
         $b = $h->openBucket();
         
         $checkVal = 243;
@@ -354,14 +354,12 @@ class BucketTest extends CouchbaseTestCase {
         $key = $this->makeKey('ccache');
     
         $h = new CouchbaseCluster(
-            $this->testHost . ';no.persist:8091',
-            '', '', './test.cache');
+            $this->testDsn . '?config_cache=./test.cache');
         $b = $h->openBucket();
         $b->upsert($key, 'yes');
         
         $h2 = new CouchbaseCluster(
-            $this->testHost . ';no.persist:8091',
-            '', '', './test.cache');
+            $this->testDsn . '?config_cache=./test.cache');
         $b2 = $h2->openBucket();
         $res = $b2->get($key);
 
