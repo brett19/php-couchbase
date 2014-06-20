@@ -1065,6 +1065,7 @@ function couchbase_basic_encoder_v1($value, $options) {
     } else {
         if ($sertype == COUCHBASE_SERTYPE_JSON) {
             $flags = COUCHBASE_VAL_IS_JSON;
+            $datatype = COUCHBASE_VALUE_F_JSON;
             $data = json_encode($value);
         } else if ($sertype == COUCHBASE_SERTYPE_IGBINARY) {
             $flags = COUCHBASE_VAL_IS_IGBINARY;
