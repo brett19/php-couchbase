@@ -30,3 +30,4 @@ modules/
 include/
 docs/
 /Debug/
+/test.cache
