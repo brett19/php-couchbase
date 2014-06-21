@@ -747,7 +747,7 @@ char *PCBC_PHP_CODESTR = \
 "     *\n" \
 "     * @param string|array $ids\n" \
 "     * @param mixed $val\n" \
-"     * @param array $options\n" \
+"     * @param array $options expiry,flags,groupid\n" \
 "     * @return mixed\n" \
 "     */\n" \
 "    public function insert($ids, $val = NULL, $options = array()) {\n" \
@@ -760,7 +760,7 @@ char *PCBC_PHP_CODESTR = \
 "     *\n" \
 "     * @param string|array $ids\n" \
 "     * @param mixed $val\n" \
-"     * @param array $options\n" \
+"     * @param array $options expiry,flags,groupid\n" \
 "     * @return mixed\n" \
 "     */\n" \
 "    public function upsert($ids, $val = NULL, $options = array()) {\n" \
@@ -772,7 +772,7 @@ char *PCBC_PHP_CODESTR = \
 "     *\n" \
 "     * @param string|array $ids\n" \
 "     * @param mixed $val\n" \
-"     * @param array $options\n" \
+"     * @param array $options cas,expiry,flags,groupid\n" \
 "     * @return mixed\n" \
 "     */\n" \
 "    public function save($ids, $val = NULL, $options = array()) {\n" \
@@ -783,7 +783,7 @@ char *PCBC_PHP_CODESTR = \
 "     * Deletes a document.\n" \
 "     *\n" \
 "     * @param string|array $ids\n" \
-"     * @param array $options\n" \
+"     * @param array $options cas,groupid\n" \
 "     * @return mixed\n" \
 "     */\n" \
 "    public function remove($ids, $options = array()) {\n" \
@@ -794,7 +794,7 @@ char *PCBC_PHP_CODESTR = \
 "     * Retrieves a document.\n" \
 "     *\n" \
 "     * @param string|array $ids\n" \
-"     * @param array $options\n" \
+"     * @param array $options lock,groupid\n" \
 "     * @return mixed\n" \
 "     */\n" \
 "    public function get($ids, $options = array()) {\n" \
@@ -806,7 +806,7 @@ char *PCBC_PHP_CODESTR = \
 "     *\n" \
 "     * @param string|array $ids\n" \
 "     * @param integer $delta\n" \
-"     * @param array $options\n" \
+"     * @param array $options initial,expiry,groupid\n" \
 "     * @return mixed\n" \
 "     */\n" \
 "    public function counter($ids, $delta, $options = array()) {\n" \
@@ -816,7 +816,7 @@ char *PCBC_PHP_CODESTR = \
 "    /**\n" \
 "     * Unlocks a key previous locked with a call to get().\n" \
 "     * @param string|array $ids\n" \
-"     * @param array $options\n" \
+"     * @param array $options cas,groupid\n" \
 "     * @return mixed\n" \
 "     */\n" \
 "    public function unlock($ids, $options = array()) {\n" \

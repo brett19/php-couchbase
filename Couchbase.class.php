@@ -747,7 +747,7 @@ class CouchbaseBucket {
      *
      * @param string|array $ids
      * @param mixed $val
-     * @param array $options
+     * @param array $options expiry,flags,groupid
      * @return mixed
      */
     public function insert($ids, $val = NULL, $options = array()) {
@@ -760,7 +760,7 @@ class CouchbaseBucket {
      *
      * @param string|array $ids
      * @param mixed $val
-     * @param array $options
+     * @param array $options expiry,flags,groupid
      * @return mixed
      */
     public function upsert($ids, $val = NULL, $options = array()) {
@@ -772,7 +772,7 @@ class CouchbaseBucket {
      *
      * @param string|array $ids
      * @param mixed $val
-     * @param array $options
+     * @param array $options cas,expiry,flags,groupid
      * @return mixed
      */
     public function save($ids, $val = NULL, $options = array()) {
@@ -783,7 +783,7 @@ class CouchbaseBucket {
      * Deletes a document.
      *
      * @param string|array $ids
-     * @param array $options
+     * @param array $options cas,groupid
      * @return mixed
      */
     public function remove($ids, $options = array()) {
@@ -794,7 +794,7 @@ class CouchbaseBucket {
      * Retrieves a document.
      *
      * @param string|array $ids
-     * @param array $options
+     * @param array $options lock,groupid
      * @return mixed
      */
     public function get($ids, $options = array()) {
@@ -806,7 +806,7 @@ class CouchbaseBucket {
      *
      * @param string|array $ids
      * @param integer $delta
-     * @param array $options
+     * @param array $options initial,expiry,groupid
      * @return mixed
      */
     public function counter($ids, $delta, $options = array()) {
@@ -816,7 +816,7 @@ class CouchbaseBucket {
     /**
      * Unlocks a key previous locked with a call to get().
      * @param string|array $ids
-     * @param array $options
+     * @param array $options cas,groupid
      * @return mixed
      */
     public function unlock($ids, $options = array()) {
