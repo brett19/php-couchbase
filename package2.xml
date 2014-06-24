@@ -14,9 +14,9 @@
     <email>brett@couchbase.com</email>
     <active>yes</active>
   </lead>
-  <date>2014-04-28</date>
+  <date>2014-06-24</date>
   <version>
-    <release>2.0.0dp1</release>
+    <release>2.0.0dp2</release>
     <api>2.0.0</api>
   </version>
   <stability>
@@ -25,7 +25,12 @@
   </stability>
   <license uri="http://www.apache.org/licenses/LICENSE-2.0">Apache V2</license>
   <notes>
-    Beta release of 2.0 version of PHP client.
+  This is a minor update to the existing PHP 2.0 developer preview.
+
+  New features in a nutshell:
+  * Cluster constructor now accepts a Couchbase Connection String.
+  * Support for cross-SDK compatible data-type flags.
+  * Client-side support for SSL connections.
   </notes>
   <contents>
     <dir name="/">
@@ -61,5 +66,39 @@
   </dependencies>
   <providesextension>couchbase</providesextension>
   <extsrcrelease/>
+  <changelog>
+    <release>
+      <date>2014-04-28</date>
+      <version>
+        <release>2.0.0-dp1</release>
+        <api>2.0.0</api>
+      </version>
+      <stability>
+        <release>beta</release>
+        <api>beta</api>
+      </stability>
+      <notes>
+  First developer preview release of 2.0 version of PHP client.
+      </notes>
+    </release>
+    <release>
+      <date>2014-06-24</date>
+      <version>
+        <release>2.0.0-dp2</release>
+        <api>2.0.0-dp2</api>
+      </version>
+      <stability>
+        <release>beta</release>
+        <api>beta</api>
+      </stability>
+      <notes>
+  This is a minor update to the existing PHP 2.0 developer preview.
 
+  New features in a nutshell:
+  * Cluster constructor now accepts a Couchbase Connection String.
+  * Support for cross-SDK compatible data-type flags.
+  * Client-side support for SSL connections.
+      </notes>
+    </release>
+  </changelog>
 </package>
