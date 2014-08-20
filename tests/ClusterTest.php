@@ -14,12 +14,11 @@ class ClusterTest extends CouchbaseTestCase {
      * Test that connections with invalid details fail.
      *
      * @expectedException CouchbaseException
-     * @expectedExceptionMessage Unknown host
      */
-    //function testBadHost() {
-    //    $h = new CouchbaseCluster('999.99.99.99:8091');
-    //    $h->connect();
-    //}
+    function testBadHost() {
+        $h = new CouchbaseCluster('http://999.99.99.99:8091');
+        $h->openBucket('default');
+    }
 
     /**
      * //@test

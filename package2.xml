@@ -37,7 +37,6 @@
       <file role="src" name="bucket.c"/>
       <file role="src" name="cluster.c"/>
       <file role="src" name="couchbase.c"/>
-      <file role="src" name="Couchbase.class.php"/>
       <file role="src" name="couchbase.h"/>
       <file role="src" name="datainfo.h"/>
       <file role="src" name="exception.c"/>

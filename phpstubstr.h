@@ -1,12 +1,28 @@
 char *PCBC_PHP_CODESTR = \
-"/**\n" \
-" * The public facing API of the PHP Couchbase Client.\n" \
-" *\n" \
-" * @author Brett Lawson\n" \
-" * @version 2.0.0\n" \
-" * @package Couchbase\n" \
+"/*\n" \
+" * The following is a list of constants used for flags and datatype\n" \
+" * encoding and decoding by the built in transcoders.\n" \
 " */\n" \
 "\n" \
+"/** @internal */ define('COUCHBASE_VAL_MASK', 0x1F);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_STRING', 0);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_LONG', 1);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_DOUBLE', 2);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_BOOL', 3);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_SERIALIZED', 4);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_IGBINARY', 5);\n" \
+"/** @internal */ define('COUCHBASE_VAL_IS_JSON', 6);\n" \
+"/** @internal */ define('COUCHBASE_COMPRESSION_MASK', 0x7 << 5);\n" \
+"/** @internal */ define('COUCHBASE_COMPRESSION_NONE', 0 << 5);\n" \
+"/** @internal */ define('COUCHBASE_COMPRESSION_ZLIB', 1 << 5);\n" \
+"/** @internal */ define('COUCHBASE_COMPRESSION_FASTLZ', 2 << 5);\n" \
+"/** @internal */ define('COUCHBASE_COMPRESSION_MCISCOMPRESSED', 1 << 4);\n" \
+"/** @internal */ define('COUCHBASE_SERTYPE_JSON', 0);\n" \
+"/** @internal */ define('COUCHBASE_SERTYPE_IGBINARY', 1);\n" \
+"/** @internal */ define('COUCHBASE_SERTYPE_PHP', 2);\n" \
+"/** @internal */ define('COUCHBASE_CMPRTYPE_NONE', 0);\n" \
+"/** @internal */ define('COUCHBASE_CMPRTYPE_ZLIB', 1);\n" \
+"/** @internal */ define('COUCHBASE_CMPRTYPE_FASTLZ', 2);\n" \
 "function _cbdsn_normalize($dsnObj) {\n" \
 "    $out = array();\n" \
 "\n" \
@@ -144,876 +160,6 @@ char *PCBC_PHP_CODESTR = \
 "function cbdsn_stringify($dsnObj) {\n" \
 "    return _cbdsn_stringify(_cbdsn_normalize($dsnObj));\n" \
 "}\n" \
-"\n" \
-"/**\n" \
-" * Represents a cluster connection.\n" \
-" *\n" \
-" * @package Couchbase\n" \
-" */\n" \
-"class CouchbaseCluster {\n" \
-"    /**\n" \
-"     * @var _CouchbaseCluster\n" \
-"     * @ignore\n" \
-"     *\n" \
-"     * Pointer to our C binding backing class.\n" \
-"     */\n" \
-"    private $_me;\n" \
-"\n" \
-"    /**\n" \
-"     * @var string\n" \
-"     * @ignore\n" \
-"     *\n" \
-"     * A cluster DSN to connect with.\n" \
-"     */\n" \
-"    private $_dsn;\n" \
-"\n" \
-"    /**\n" \
-"     * Creates a connection to a cluster.\n" \
-"     *\n" \
-"     * Creates a CouchbaseCluster object and begins the bootstrapping\n" \
-"     * process necessary for communications with the Couchbase Server.\n" \
-"     *\n" \
-"     * @param string $dsn A cluster DSn to connect with.\n" \
-"     * @param string $username The username for the cluster.\n" \
-"     * @param string $password The password for the cluster.\n" \
-"     *\n" \
-"     * @throws CouchbaseException\n" \
-"     */\n" \
-"    public function __construct($dsn = 'http://127.0.0.1/', $username = '', $password = '') {\n" \
-"        $this->_me = new _CouchbaseCluster($dsn, $username, $password);\n" \
-"        $this->_dsn = cbdsn_parse($dsn);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Constructs a connection to a bucket.\n" \
-"     *\n" \
-"     * @param string $name The name of the bucket to open.\n" \
-"     * @param string $password The bucket password to authenticate with.\n" \
-"     * @return CouchbaseBucket A bucket object.\n" \
-"     *\n" \
-"     * @throws CouchbaseException\n" \
-"     *\n" \
-"     * @see CouchbaseBucket CouchbaseBucket\n" \
-"     */\n" \
-"    public function openBucket($name = 'default', $password = '') {\n" \
-"        $bucketDsn = cbdsn_normalize($this->_dsn);\n" \
-"        $bucketDsn['bucket'] = $name;\n" \
-"        $dsnStr = cbdsn_stringify($bucketDsn);\n" \
-"        return new CouchbaseBucket($dsnStr, $name, $password);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Constructs a querier object for performing N1QL queries.\n" \
-"     *\n" \
-"     * This function will create a querier object which can be used for\n" \
-"     * performing N1QL queries against a cluster.\n" \
-"     *\n" \
-"     * @param string|array $queryhosts A string or array of hosts of cbq_engine instances.\n" \
-"     * @return CouchbaseQuerier A querier object.\n" \
-"     *\n" \
-"     * @throws CouchbaseException\n" \
-"     *\n" \
-"     * @see CouchbaseQuerier CouchbaseQuerier\n" \
-"     */\n" \
-"    public function openQuerier($queryhosts) {\n" \
-"        if (!is_array($queryhosts)) {\n" \
-"            $hosts = array();\n" \
-"            array_push($hosts, $queryhosts);\n" \
-"        } else {\n" \
-"            $hosts = $queryhosts;\n" \
-"        }\n" \
-"\n" \
-"        return new CouchbaseQuerier($hosts);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Connects to management services on the cluster.\n" \
-"     *\n" \
-"     * You must use this function if you wish to perform management\n" \
-"     * activities using this cluster instance.\n" \
-"     *\n" \
-"     * @throws CouchbaseException\n" \
-"     */\n" \
-"    public function connect() {\n" \
-"        return $this->_me->connect();\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Retrieves cluster status information\n" \
-"     *\n" \
-"     * Returns an associative array of status information as seen\n" \
-"     * on the cluster.  The exact structure of the returned data\n" \
-"     * can be seen in the Couchbase Manual by looking at the\n" \
-"     * cluster /info endpoint.\n" \
-"     *\n" \
-"     * @return mixed The status information.\n" \
-"     *\n" \
-"     * @throws CouchbaseException\n" \
-"     */\n" \
-"    public function info() {\n" \
-"        $path = \"/pools/default\";\n" \
-"        $res = $this->me->http_request(2, 1, $path, NULL, 2);\n" \
-"        return json_decode($res, true);\n" \
-"    }\n" \
-"}\n" \
-"\n" \
-"/**\n" \
-" * Represents a query connection.\n" \
-" *\n" \
-" * Note: This class must be constructed by calling the openQuerier\n" \
-" * method of the CouchbaseCluster class.\n" \
-" *\n" \
-" * @package Couchbase\n" \
-" *\n" \
-" * @see CouchbaseCluster::openQuerier()\n" \
-" */\n" \
-"class CouchbaseQuerier {\n" \
-"    /**\n" \
-"     * @var array\n" \
-"     * @ignore\n" \
-"     *\n" \
-"     * A host list for cbq_engine instances.\n" \
-"     */\n" \
-"    private $_hosts;\n" \
-"\n" \
-"    /**\n" \
-"     * Constructs a querier object.\n" \
-"     *\n" \
-"     * @private\n" \
-"     * @ignore\n" \
-"     */\n" \
-"    public function __construct($hosts) {\n" \
-"        $this->_hosts = $hosts;\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Executes a N1QL query.\n" \
-"     *\n" \
-"     * @param $dmlstring The N1QL query to execute.\n" \
-"     * @return array The resultset of the query.\n" \
-"     *\n" \
-"     * @throws CouchbaseException\n" \
-"     */\n" \
-"    public function query($dmlstring) {\n" \
-"        $hostidx = array_rand($this->_hosts, 1);\n" \
-"        $host = $this->_hosts[$hostidx];\n" \
-"\n" \
-"        $ch = curl_init();\n" \
-"        curl_setopt($ch, CURLOPT_URL, 'http://' . $host . '/query');\n" \
-"        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);\n" \
-"        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');\n" \
-"        curl_setopt($ch, CURLOPT_POSTFIELDS, $dmlstring);\n" \
-"        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\n" \
-"        curl_setopt($ch, CURLOPT_HTTPHEADER, array(\n" \
-"            'Content-Type: text/plain',\n" \
-"            'Content-Length: ' . strlen($dmlstring))\n" \
-"        );\n" \
-"        $result = curl_exec($ch);\n" \
-"        curl_close($ch);\n" \
-"\n" \
-"        $resjson = json_decode($result, true);\n" \
-"\n" \
-"        if (isset($resjson['error'])) {\n" \
-"            throw new CouchbaseException($resjson['error']['cause'], 999);\n" \
-"        }\n" \
-"\n" \
-"        return $resjson['resultset'];\n" \
-"    }\n" \
-"}\n" \
-"\n" \
-"/**\n" \
-" * Represents a durability enforced bucket connection.\n" \
-" *\n" \
-" * Note: This class must be constructed by calling the endure\n" \
-" * method of the CouchbaseBucket class.\n" \
-" *\n" \
-" * @property integer $operationTimeout\n" \
-" * @property integer $viewTimeout\n" \
-" * @property integer $durabilityInterval\n" \
-" * @property integer $durabilityTimeout\n" \
-" * @property integer $httpTimeout\n" \
-" * @property integer $configTimeout\n" \
-" * @property integer $configDelay\n" \
-" * @property integer $configNodeTimeout\n" \
-" * @property integer $htconfigIdleTimeout\n" \
-" *\n" \
-" * @private\n" \
-" * @package Couchbase\n" \
-" *\n" \
-" * @see CouchbaseBucket::endure()\n" \
-" */\n" \
-"class CouchbaseBucketDProxy {\n" \
-"    /**\n" \
-"     * @var CouchbaseBucket\n" \
-"     * @ignore\n" \
-"     *\n" \
-"     * A pointer back to the original CouchbaseBucket object.\n" \
-"     */\n" \
-"    private $_me;\n" \
-"\n" \
-"    /**\n" \
-"     * @var string\n" \
-"     * @ignore\n" \
-"     *\n" \
-"     * The name of the bucket this object represents.\n" \
-"     */\n" \
-"    private $_bucket;\n" \
-"\n" \
-"    /**\n" \
-"     * @var int\n" \
-"     * @ignore\n" \
-"     *\n" \
-"     * The level of persistence to enforce.\n" \
-"     */\n" \
-"    private $_persist;\n" \
-"\n" \
-"    /**\n" \
-"     * @var int\n" \
-"     * @ignore\n" \
-"     *\n" \
-"     * The level of replication to enforce.\n" \
-"     */\n" \
-"    private $_replicate;\n" \
-"\n" \
-"    /**\n" \
-"     * Constructs a bucket endure proxy.\n" \
-"     *\n" \
-"     * @private\n" \
-"     * @ignore\n" \
-"     *\n" \
-"     * @param $me Pointer to the creating bucket object.\n" \
-"     * @param $bucket Name of the bucket.\n" \
-"     * @param $persist The level of persistence requested.\n" \
-"     * @param $replicate The level of replication requested.\n" \
-"     */\n" \
-"    public function __construct($me, $bucket, $persist, $replicate) {\n" \
-"        $this->_me = $me;\n" \
-"        $this->_bucket = $bucket;\n" \
-"        $this->_persist = $persist;\n" \
-"        $this->_replicate = $replicate;\n" \
-"\n" \
-"        // Implicit view durability\n" \
-"        if ($this->_persist < 1) {\n" \
-"            $this->_persist = 1;\n" \
-"        }\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Ensures durability requirements are met for an executed\n" \
-"     *  operation.  Note that this function will automatically\n" \
-"     *  determine the result types and check for any failures.\n" \
-"     *\n" \
-"     * @private\n" \
-"     * @ignore\n" \
-"     *\n" \
-"     * @param $id\n" \
-"     * @param $res\n" \
-"     * @return mixed\n" \
-"     * @throws Exception\n" \
-"     */\n" \
-"    private function _endure($id, $res) {\n" \
-"        if (is_array($res)) {\n" \
-"            // Build list of keys to check\n" \
-"            $chks = array();\n" \
-"            foreach ($res as $key => $result) {\n" \
-"                if (!$result->error) {\n" \
-"                    $chks[$key] = array(\n" \
-"                        'cas' => $result->cas\n" \
-"                    );\n" \
-"                }\n" \
-"            }\n" \
-"\n" \
-"            // Do the checks\n" \
-"            $dres = $this->_me->durability($chks, array(\n" \
-"                'persist_to' => $this->_persist,\n" \
-"                'replicate_to' => $this->_replicate\n" \
-"            ));\n" \
-"\n" \
-"            // Copy over the durability errors\n" \
-"            foreach ($dres as $key => $result) {\n" \
-"                if (!$result) {\n" \
-"                    $res[$key]->error = $result->error;\n" \
-"                }\n" \
-"            }\n" \
-"\n" \
-"            return $res;\n" \
-"        } else {\n" \
-"            if ($res->error) {\n" \
-"                return $res;\n" \
-"            }\n" \
-"\n" \
-"            $dres = $this->_me->durability(array(\n" \
-"                $id => array('cas' => $res->cas)\n" \
-"            ), array(\n" \
-"                'persist_to' => $this->_persist,\n" \
-"                'replicate_to' => $this->_replicate\n" \
-"            ));\n" \
-"\n" \
-"            if ($dres) {\n" \
-"                return $res;\n" \
-"            } else {\n" \
-"                throw new Exception('durability requirements failed');\n" \
-"            }\n" \
-"        }\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::insert() CouchbaseBucket::insert()\n" \
-"     *\n" \
-"     * @param $id\n" \
-"     * @param $doc\n" \
-"     * @param array $options\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function insert($id, $doc, $options = array()) {\n" \
-"        return $this->_endure($id,\n" \
-"            $this->_bucket->insert($id, $doc, $options)\n" \
-"        );\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::upsert() CouchbaseBucket::upsert()\n" \
-"     *\n" \
-"     * @param $id\n" \
-"     * @param $doc\n" \
-"     * @param array $options\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function upsert($id, $doc, $options = array()) {\n" \
-"        return $this->_endure($id,\n" \
-"            $this->_bucket->upsert($id, $doc, $options)\n" \
-"        );\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::save() CouchbaseBucket::save()\n" \
-"     *\n" \
-"     * @param $id\n" \
-"     * @param $doc\n" \
-"     * @param array $options\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function save($id, $doc, $options = array()) {\n" \
-"        return $this->_endure($id,\n" \
-"            $this->_bucket->save($id, $doc, $options)\n" \
-"        );\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::update() CouchbaseBucket::update()\n" \
-"     *\n" \
-"     * @param $id\n" \
-"     * @param $updates\n" \
-"     * @param array $options\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function update($id, $updates, $options = array()) {\n" \
-"        return $this->_endure($id,\n" \
-"            $this->_bucket->update($id, $updates, $options)\n" \
-"        );\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::remove() CouchbaseBucket::remove()\n" \
-"     *\n" \
-"     * @param $id\n" \
-"     * @param array $options\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function remove($id, $options = array()) {\n" \
-"        return $this->_endure($id,\n" \
-"            $this->_bucket->remove($id, $options)\n" \
-"        );\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::get() CouchbaseBucket::get()\n" \
-"     *\n" \
-"     * @param $id\n" \
-"     * @param array $options\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function get($id, $options = array()) {\n" \
-"        return $this->_bucket->get($id, $options);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::find() CouchbaseBucket::find()\n" \
-"     *\n" \
-"     * @param $ddocview\n" \
-"     * @param array $options\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function find($ddocview, $options = array()) {\n" \
-"        $options['stale'] = 'false';\n" \
-"        return $this->_bucket->find($ddocview, $options);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::unlock() CouchbaseBucket::unlock()\n" \
-"     *\n" \
-"     * @param $id\n" \
-"     * @param $cas\n" \
-"     * @param array $options\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function unlock($id, $cas, $options = array()) {\n" \
-"        return $this->_bucket->unlock($id, $cas, $options);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::counter() CouchbaseBucket::counter()\n" \
-"     *\n" \
-"     * @param $id\n" \
-"     * @param $delta\n" \
-"     * @param array $options\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function counter($id, $delta, $options = array()) {\n" \
-"        return $this->_endure($id,\n" \
-"            $this->_bucket->counter($id, $delta, $options)\n" \
-"        );\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::view() CouchbaseBucket::view()\n" \
-"     *\n" \
-"     * @param $ddoc\n" \
-"     * @param $view\n" \
-"     * @param array $options\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function view($ddoc, $view, $options = array()) {\n" \
-"        return $this->_bucket->view($ddoc, $view, $options);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::info() CouchbaseBucket::info()\n" \
-"     *\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function info() {\n" \
-"        return $this->_bucket->info();\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::flush() CouchbaseBucket::flush()\n" \
-"     *\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function flush() {\n" \
-"        return $this->_bucket->flush();\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::endure() CouchbaseBucket::endure()\n" \
-"     *\n" \
-"     * @param array $reqs\n" \
-"     * @return CouchbaseBucketDProxy\n" \
-"     */\n" \
-"    public function endure($reqs = array()) {\n" \
-"        if (isset($reqs['persist_to'])) {\n" \
-"            $reqs['persist_to'] = max($reqs['persist_to'], $this->_persist);\n" \
-"        } else {\n" \
-"            $reqs['persist_to'] = $this->_persist;\n" \
-"        }\n" \
-"        if (isset($reqs['replicate_to'])) {\n" \
-"            $reqs['replicate_to'] = max($reqs['replicate_to'], $this->_persist);\n" \
-"        } else {\n" \
-"            $reqs['replicate_to'] = $this->_replicate;\n" \
-"        }\n" \
-"        return $this->_me->endure($reqs);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::setTranscoder() CouchbaseBucket::setTranscoder()\n" \
-"     *\n" \
-"     * @param string $encoder The encoder function name\n" \
-"     * @param string $decoder The decoder function name\n" \
-"     */\n" \
-"    public function setTranscoder($encoder, $decoder) {\n" \
-"        return $this->_me->setTranscoder($encoder, $decoder);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::__get() CouchbaseBucket::__get()\n" \
-"     *\n" \
-"     * @internal\n" \
-"     */\n" \
-"    public function __get($name) {\n" \
-"        return $this->_me->__get($name);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * See referenced CouchbaseBucket parent method.\n" \
-"     *\n" \
-"     * @see CouchbaseBucket::__set() CouchbaseBucket::__set()\n" \
-"     *\n" \
-"     * @internal\n" \
-"     */\n" \
-"    public function __set($name, $value) {\n" \
-"        return $this->_me->__set($name, $value);\n" \
-"    }\n" \
-"}\n" \
-"\n" \
-"/**\n" \
-" * Represents a bucket connection.\n" \
-" *\n" \
-" * Note: This class must be constructed by calling the openBucket\n" \
-" * method of the CouchbaseCluster class.\n" \
-" *\n" \
-" * @property integer $operationTimeout\n" \
-" * @property integer $viewTimeout\n" \
-" * @property integer $durabilityInterval\n" \
-" * @property integer $durabilityTimeout\n" \
-" * @property integer $httpTimeout\n" \
-" * @property integer $configTimeout\n" \
-" * @property integer $configDelay\n" \
-" * @property integer $configNodeTimeout\n" \
-" * @property integer $htconfigIdleTimeout\n" \
-" *\n" \
-" * @package Couchbase\n" \
-" *\n" \
-" * @see CouchbaseCluster::openBucket()\n" \
-" */\n" \
-"class CouchbaseBucket {\n" \
-"    /**\n" \
-"     * @var _CouchbaseBucket\n" \
-"     * @ignore\n" \
-"     *\n" \
-"     * Pointer to our C binding backing class.\n" \
-"     */\n" \
-"    private $me;\n" \
-"\n" \
-"    /**\n" \
-"     * @var string\n" \
-"     * @ignore\n" \
-"     *\n" \
-"     * The name of the bucket this object represents.\n" \
-"     */\n" \
-"    private $name;\n" \
-"\n" \
-"    /**\n" \
-"     * Constructs a bucket connection.\n" \
-"     *\n" \
-"     * @private\n" \
-"     * @ignore\n" \
-"     *\n" \
-"     * @param string $dsn A cluster DSN to connect with.\n" \
-"     * @param string $name The name of the bucket to connect to.\n" \
-"     * @param string $password The password to authenticate with.\n" \
-"     *\n" \
-"     * @private\n" \
-"     */\n" \
-"    public function __construct($dsn, $name, $password) {\n" \
-"        $this->me = new _CouchbaseBucket($dsn, $name, $password);\n" \
-"        $this->me->setTranscoder(\"couchbase_default_encoder\", \"couchbase_default_decoder\");\n" \
-"        $this->name = $name;\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Inserts a document.  This operation will fail if\n" \
-"     * the document already exists on the cluster.\n" \
-"     *\n" \
-"     * @param string|array $ids\n" \
-"     * @param mixed $val\n" \
-"     * @param array $options expiry,flags,groupid\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function insert($ids, $val = NULL, $options = array()) {\n" \
-"        return $this->me->insert($ids, $val, $options);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Inserts or updates a document, depending on whether the\n" \
-"     * document already exists on the cluster.\n" \
-"     *\n" \
-"     * @param string|array $ids\n" \
-"     * @param mixed $val\n" \
-"     * @param array $options expiry,flags,groupid\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function upsert($ids, $val = NULL, $options = array()) {\n" \
-"        return $this->me->upsert($ids, $val, $options);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Saves a document.\n" \
-"     *\n" \
-"     * @param string|array $ids\n" \
-"     * @param mixed $val\n" \
-"     * @param array $options cas,expiry,flags,groupid\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function save($ids, $val = NULL, $options = array()) {\n" \
-"        return $this->me->save($ids, $val, $options);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Deletes a document.\n" \
-"     *\n" \
-"     * @param string|array $ids\n" \
-"     * @param array $options cas,groupid\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function remove($ids, $options = array()) {\n" \
-"        return $this->me->remove($ids, $options);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Retrieves a document.\n" \
-"     *\n" \
-"     * @param string|array $ids\n" \
-"     * @param array $options lock,groupid\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function get($ids, $options = array()) {\n" \
-"        return $this->me->get($ids, $options);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Increment or decrements a key (based on $delta).\n" \
-"     *\n" \
-"     * @param string|array $ids\n" \
-"     * @param integer $delta\n" \
-"     * @param array $options initial,expiry,groupid\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function counter($ids, $delta, $options = array()) {\n" \
-"        return $this->me->counter($ids, $delta, $options);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Unlocks a key previous locked with a call to get().\n" \
-"     * @param string|array $ids\n" \
-"     * @param array $options cas,groupid\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function unlock($ids, $options = array()) {\n" \
-"        return $this->me->unlock($ids, $options);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Finds a document by view request.\n" \
-"     *\n" \
-"     * @param string $ddocview\n" \
-"     * @param array $options\n" \
-"     * @return array\n" \
-"     */\n" \
-"    public function find($ddocview, $options) {\n" \
-"        $info = explode('/', $ddocview);\n" \
-"        $res = $this->view($info[0], $info[1], $options);\n" \
-"        $out = array();\n" \
-"\n" \
-"        return $out;\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Performs a raw view request.\n" \
-"     *\n" \
-"     * @param string $ddoc\n" \
-"     * @param string $view\n" \
-"     * @param array $options\n" \
-"     * @return mixed\n" \
-"     * @throws CouchbaseException\n" \
-"     */\n" \
-"    public function view($ddoc, $view, $options) {\n" \
-"        $path = '/_design/' . $ddoc . '/_view/' . $view;\n" \
-"        $args = array();\n" \
-"        foreach ($options as $option => $value) {\n" \
-"            array_push($args, $option . '=' . json_encode($value));\n" \
-"        }\n" \
-"        $path .= '?' . implode('&', $args);\n" \
-"        $res = $this->me->http_request(1, 1, $path, NULL, 1);\n" \
-"        $out = json_decode($res, true);\n" \
-"        if ($out['error']) {\n" \
-"            throw new CouchbaseException($out['error'] . ': ' . $out['reason']);\n" \
-"        }\n" \
-"        return $out;\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Flushes a bucket (clears all data).\n" \
-"     *\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function flush() {\n" \
-"        return $this->me->flush();\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Retrieves bucket status information\n" \
-"     *\n" \
-"     * Returns an associative array of status information as seen\n" \
-"     * by the cluster for this bucket.  The exact structure of the\n" \
-"     * returned data can be seen in the Couchbase Manual by looking\n" \
-"     * at the bucket /info endpoint.\n" \
-"     *\n" \
-"     * @return mixed The status information.\n" \
-"     */\n" \
-"    public function info() {\n" \
-"        $path = \"/pools/default/buckets/\" . $this->name;\n" \
-"        $res = $this->me->http_request(2, 1, $path, NULL, 2);\n" \
-"        return json_decode($res, true);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Creates a proxy bucket object that will ensure a certain\n" \
-"     * level of durability is achieved.\n" \
-"     *\n" \
-"     * @param array $reqs\n" \
-"     * @return CouchbaseBucketDProxy\n" \
-"     */\n" \
-"    public function endure($reqs = array()) {\n" \
-"        $persist = 0;\n" \
-"        if (isset($reqs['persist_to'])) {\n" \
-"            $persist = $reqs['persist_to'];\n" \
-"        }\n" \
-"        $replicate = 0;\n" \
-"        if (isset($reqs['replicate_to'])) {\n" \
-"            $replicate = $reqs['replicate_to'];\n" \
-"        }\n" \
-"        return new CouchbaseBucketDProxy($this->me, $this, $persist, $replicate);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Sets custom encoder and decoder functions for handling serialization.\n" \
-"     *\n" \
-"     * @param string $encoder The encoder function name\n" \
-"     * @param string $decoder The decoder function name\n" \
-"     */\n" \
-"    public function setTranscoder($encoder, $decoder) {\n" \
-"        return $this->me->setTranscoder($encoder, $decoder);\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Magic function to handle the retrieval of various properties.\n" \
-"     *\n" \
-"     * @internal\n" \
-"     */\n" \
-"    public function __get($name) {\n" \
-"        if ($name == 'operationTimeout') {\n" \
-"            return $this->me->getOption(COUCHBASE_CNTL_OP_TIMEOUT);\n" \
-"        } else if ($name == 'viewTimeout') {\n" \
-"            return $this->me->getOption(COUCHBASE_CNTL_VIEW_TIMEOUT);\n" \
-"        } else if ($name == 'durabilityInterval') {\n" \
-"            return $this->me->getOption(COUCHBASE_CNTL_DURABILITY_INTERVAL);\n" \
-"        } else if ($name == 'durabilityTimeout') {\n" \
-"            return $this->me->getOption(COUCHBASE_CNTL_DURABILITY_TIMEOUT);\n" \
-"        } else if ($name == 'httpTimeout') {\n" \
-"            return $this->me->getOption(COUCHBASE_CNTL_HTTP_TIMEOUT);\n" \
-"        } else if ($name == 'configTimeout') {\n" \
-"            return $this->me->getOption(COUCHBASE_CNTL_CONFIGURATION_TIMEOUT);\n" \
-"        } else if ($name == 'configDelay') {\n" \
-"            return $this->me->getOption(COUCHBASE_CNTL_CONFDELAY_THRESH);\n" \
-"        } else if ($name == 'configNodeTimeout') {\n" \
-"            return $this->me->getOption(COUCHBASE_CNTL_CONFIG_NODE_TIMEOUT);\n" \
-"        } else if ($name == 'htconfigIdleTimeout') {\n" \
-"            return $this->me->getOption(COUCHBASE_CNTL_HTCONFIG_IDLE_TIMEOUT);\n" \
-"        }\n" \
-"\n" \
-"\n" \
-"        $trace = debug_backtrace();\n" \
-"        trigger_error(\n" \
-"            'Undefined property via __get(): ' . $name .\n" \
-"            ' in ' . $trace[0]['file'] .\n" \
-"            ' on line ' . $trace[0]['line'],\n" \
-"            E_USER_NOTICE);\n" \
-"        return null;\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
-"     * Magic function to handle the setting of various properties.\n" \
-"     *\n" \
-"     * @internal\n" \
-"     */\n" \
-"    public function __set($name, $value) {\n" \
-"        if ($name == 'operationTimeout') {\n" \
-"            return $this->me->setOption(COUCHBASE_CNTL_OP_TIMEOUT, $value);\n" \
-"        } else if ($name == 'viewTimeout') {\n" \
-"            return $this->me->setOption(COUCHBASE_CNTL_VIEW_TIMEOUT, $value);\n" \
-"        } else if ($name == 'durabilityInterval') {\n" \
-"            return $this->me->setOption(COUCHBASE_CNTL_DURABILITY_INTERVAL, $value);\n" \
-"        } else if ($name == 'durabilityTimeout') {\n" \
-"            return $this->me->setOption(COUCHBASE_CNTL_DURABILITY_TIMEOUT, $value);\n" \
-"        } else if ($name == 'httpTimeout') {\n" \
-"            return $this->me->setOption(COUCHBASE_CNTL_HTTP_TIMEOUT, $value);\n" \
-"        } else if ($name == 'configTimeout') {\n" \
-"            return $this->me->setOption(COUCHBASE_CNTL_CONFIGURATION_TIMEOUT, $value);\n" \
-"        } else if ($name == 'configDelay') {\n" \
-"            return $this->me->setOption(COUCHBASE_CNTL_CONFDELAY_THRESH, $value);\n" \
-"        } else if ($name == 'configNodeTimeout') {\n" \
-"            return $this->me->setOption(COUCHBASE_CNTL_CONFIG_NODE_TIMEOUT, $value);\n" \
-"        } else if ($name == 'htconfigIdleTimeout') {\n" \
-"            return $this->me->setOption(COUCHBASE_CNTL_HTCONFIG_IDLE_TIMEOUT, $value);\n" \
-"        }\n" \
-"\n" \
-"\n" \
-"        $trace = debug_backtrace();\n" \
-"        trigger_error(\n" \
-"            'Undefined property via __set(): ' . $name .\n" \
-"            ' in ' . $trace[0]['file'] .\n" \
-"            ' on line ' . $trace[0]['line'],\n" \
-"            E_USER_NOTICE);\n" \
-"        return null;\n" \
-"    }\n" \
-"}\n" \
-"\n" \
-"/*\n" \
-" * The following is a list of constants used for flags and datatype\n" \
-" * encoding and decoding by the built in transcoders.\n" \
-" */\n" \
-"\n" \
-"/** @internal */ define('COUCHBASE_VAL_MASK', 0x1F);\n" \
-"/** @internal */ define('COUCHBASE_VAL_IS_STRING', 0);\n" \
-"/** @internal */ define('COUCHBASE_VAL_IS_LONG', 1);\n" \
-"/** @internal */ define('COUCHBASE_VAL_IS_DOUBLE', 2);\n" \
-"/** @internal */ define('COUCHBASE_VAL_IS_BOOL', 3);\n" \
-"/** @internal */ define('COUCHBASE_VAL_IS_SERIALIZED', 4);\n" \
-"/** @internal */ define('COUCHBASE_VAL_IS_IGBINARY', 5);\n" \
-"/** @internal */ define('COUCHBASE_VAL_IS_JSON', 6);\n" \
-"/** @internal */ define('COUCHBASE_COMPRESSION_MASK', 0x7 << 5);\n" \
-"/** @internal */ define('COUCHBASE_COMPRESSION_NONE', 0 << 5);\n" \
-"/** @internal */ define('COUCHBASE_COMPRESSION_ZLIB', 1 << 5);\n" \
-"/** @internal */ define('COUCHBASE_COMPRESSION_FASTLZ', 2 << 5);\n" \
-"/** @internal */ define('COUCHBASE_COMPRESSION_MCISCOMPRESSED', 1 << 4);\n" \
-"/** @internal */ define('COUCHBASE_SERTYPE_JSON', 0);\n" \
-"/** @internal */ define('COUCHBASE_SERTYPE_IGBINARY', 1);\n" \
-"/** @internal */ define('COUCHBASE_SERTYPE_PHP', 2);\n" \
-"/** @internal */ define('COUCHBASE_CMPRTYPE_NONE', 0);\n" \
-"/** @internal */ define('COUCHBASE_CMPRTYPE_ZLIB', 1);\n" \
-"/** @internal */ define('COUCHBASE_CMPRTYPE_FASTLZ', 2);\n" \
-"\n" \
 "/**\n" \
 " * The default options for V1 encoding when using the default\n" \
 " * transcoding functionality.\n" \
@@ -1186,4 +332,868 @@ char *PCBC_PHP_CODESTR = \
 "function couchbase_default_decoder($bytes, $flags, $datatype) {\n" \
 "    return couchbase_basic_decoder_v1($bytes, $flags, $datatype);\n" \
 "}\n" \
+"class CouchbaseViewQuery {\n" \
+"    public $ddoc = '';\n" \
+"    public $name = '';\n" \
+"    public $options = array();\n" \
+"\n" \
+"    const UPDATE_BEFORE = 1;\n" \
+"    const UPDATE_NONE = 2;\n" \
+"    const UPDATE_AFTER = 3;\n" \
+"\n" \
+"    const ORDER_ASCENDING = 1;\n" \
+"    const ORDER_DESCENDING = 2;\n" \
+"\n" \
+"    private function __construct() {\n" \
+"    }\n" \
+"\n" \
+"    static public function from($ddoc, $name) {\n" \
+"        $res = new _CouchbaseDefaultViewQuery();\n" \
+"        $res->ddoc = $ddoc;\n" \
+"        $res->name = $name;\n" \
+"        return $res;\n" \
+"    }\n" \
+"\n" \
+"    static public function fromSpatial($ddoc, $name) {\n" \
+"        $res = new _CouchbaseSpatialViewQuery();\n" \
+"        $res->ddoc = $ddoc;\n" \
+"        $res->name = $name;\n" \
+"        return $res;\n" \
+"    }\n" \
+"\n" \
+"    public function stale($stale) {\n" \
+"        if ($stale == self::UPDATE_BEFORE) {\n" \
+"            $this->options['stale'] = 'false';\n" \
+"        } else if ($stale == self::UPDATE_NONE) {\n" \
+"            $this->options['stale'] = 'ok';\n" \
+"        } else if ($stale == self::UPDATE_AFTER) {\n" \
+"            $this->options['stale'] = 'update_after';\n" \
+"        } else {\n" \
+"            throw new CouchbaseException('invalid option passed.');\n" \
+"        }\n" \
+"        return $this;\n" \
+"    }\n" \
+"\n" \
+"    public function skip($skip) {\n" \
+"        $this->options['skip'] = $skip;\n" \
+"        return $this;\n" \
+"    }\n" \
+"\n" \
+"    public function limit($limit) {\n" \
+"        $this->options['limit'] = $limit;\n" \
+"        return $this;\n" \
+"    }\n" \
+"\n" \
+"    public function custom($opts) {\n" \
+"        foreach ($opts as $k => $v) {\n" \
+"            $this->options[$k] = $v;\n" \
+"        }\n" \
+"        return $this;\n" \
+"    }\n" \
+"};\n" \
+"\n" \
+"class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {\n" \
+"    public function __construct() {\n" \
+"    }\n" \
+"\n" \
+"    public function order($order) {\n" \
+"        if ($order == self::ORDER_ASCENDING) {\n" \
+"            $this->options['descending'] = false;\n" \
+"        } else if ($order == self::ORDER_DESCENDING) {\n" \
+"            $this->options['descending'] = true;\n" \
+"        } else {\n" \
+"            throw new CouchbaseException('invalid option passed.');\n" \
+"        }\n" \
+"        return $this;\n" \
+"    }\n" \
+"\n" \
+"    public function reduce($reduce) {\n" \
+"        $this->options['reduce'] = $reduce;\n" \
+"        return $this;\n" \
+"    }\n" \
+"\n" \
+"    public function group($group_level) {\n" \
+"        if ($group_level >= 0) {\n" \
+"            $this->options['group'] = false;\n" \
+"            $this->options['group_level'] = $group_level;\n" \
+"        } else {\n" \
+"            $this->options['group'] = true;\n" \
+"            $this->options['group_level'] = 0;\n" \
+"        }\n" \
+"        return $this;\n" \
+"    }\n" \
+"\n" \
+"    public function key($key) {\n" \
+"        $this->options['key'] = $key;\n" \
+"        return $this;\n" \
+"    }\n" \
+"\n" \
+"    public function keys($keys) {\n" \
+"        $this->options['keys'] = json_encode($keys);\n" \
+"        return $this;\n" \
+"    }\n" \
+"\n" \
+"    public function range($start = NULL, $end = NULL, $inclusive_end = false) {\n" \
+"        if ($start !== NULL) {\n" \
+"            $this->options['startkey'] = json_encode($start);\n" \
+"        } else {\n" \
+"            $this->options['startkey'] = '';\n" \
+"        }\n" \
+"        if ($end !== NULL) {\n" \
+"            $this->options['endkey'] = json_encode($end);\n" \
+"        } else {\n" \
+"            $this->options['endkey'] = '';\n" \
+"        }\n" \
+"        $this->options['inclusive_end'] = $inclusive_end;\n" \
+"        return $this;\n" \
+"    }\n" \
+"\n" \
+"    public function id_range($start = NULL, $end = NULL) {\n" \
+"        if ($start !== NULL) {\n" \
+"            $this->options['startkey_docid'] = json_encode($start);\n" \
+"        } else {\n" \
+"            $this->options['startkey_docid'] = '';\n" \
+"        }\n" \
+"        if ($end !== NULL) {\n" \
+"            $this->options['startkey_docid'] = json_encode($end);\n" \
+"        } else {\n" \
+"            $this->options['startkey_docid'] = '';\n" \
+"        }\n" \
+"        return $this;\n" \
+"    }\n" \
+"};\n" \
+"\n" \
+"class _CouchbaseSpatialViewQuery extends CouchbaseViewQuery {\n" \
+"    public function __construct() {\n" \
+"    }\n" \
+"\n" \
+"    public function bbox($bbox) {\n" \
+"        $this->options['bbox'] = implode(',', $bbox);\n" \
+"        return $this;\n" \
+"    }\n" \
+"};\n" \
+"/**\n" \
+" * Represents a cluster connection.\n" \
+" *\n" \
+" * @package Couchbase\n" \
+" */\n" \
+"class CouchbaseCluster {\n" \
+"    /**\n" \
+"     * @var _CouchbaseCluster\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * Pointer to a manager instance if there is one.\n" \
+"     */\n" \
+"    private $_manager = NULL;\n" \
+"\n" \
+"    /**\n" \
+"     * @var string\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * A cluster DSN to connect with.\n" \
+"     */\n" \
+"    private $_dsn;\n" \
+"\n" \
+"    /**\n" \
+"     * Creates a connection to a cluster.\n" \
+"     *\n" \
+"     * Creates a CouchbaseCluster object and begins the bootstrapping\n" \
+"     * process necessary for communications with the Couchbase Server.\n" \
+"     *\n" \
+"     * @param string $dsn A cluster DSn to connect with.\n" \
+"     * @param string $username The username for the cluster.\n" \
+"     * @param string $password The password for the cluster.\n" \
+"     *\n" \
+"     * @throws CouchbaseException\n" \
+"     */\n" \
+"    public function __construct($dsn = 'http://127.0.0.1/', $username = '', $password = '') {\n" \
+"        $this->_dsn = cbdsn_parse($dsn);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Constructs a connection to a bucket.\n" \
+"     *\n" \
+"     * @param string $name The name of the bucket to open.\n" \
+"     * @param string $password The bucket password to authenticate with.\n" \
+"     * @return CouchbaseBucket A bucket object.\n" \
+"     *\n" \
+"     * @throws CouchbaseException\n" \
+"     *\n" \
+"     * @see CouchbaseBucket CouchbaseBucket\n" \
+"     */\n" \
+"    public function openBucket($name = 'default', $password = '') {\n" \
+"        $bucketDsn = cbdsn_normalize($this->_dsn);\n" \
+"        $bucketDsn['bucket'] = $name;\n" \
+"        $dsnStr = cbdsn_stringify($bucketDsn);\n" \
+"        return new CouchbaseBucket($dsnStr, $name, $password);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Creates a manager allowing the management of a Couchbase cluster.\n" \
+"     *\n" \
+"     * @param $username The administration username.\n" \
+"     * @param $password The administration password.\n" \
+"     * @return CouchbaseClusterManager\n" \
+"     */\n" \
+"    public function manager($username, $password) {\n" \
+"        if (!$this->_manager) {\n" \
+"            $this->_manager = new CouchbaseClusterManager(\n" \
+"                cbdsn_stringify($this->_dsn), $username, $password);\n" \
+"        }\n" \
+"        return $this->_manager;\n" \
+"    }\n" \
+"\n" \
+"}\n" \
+"class CouchbaseClusterManager {\n" \
+"    /**\n" \
+"     * @var _CouchbaseCluster\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * Pointer to our C binding backing class.\n" \
+"     */\n" \
+"    private $_me;\n" \
+"\n" \
+"    /**\n" \
+"     * Constructs a cluster manager connection.\n" \
+"     *\n" \
+"     * @param string $connstr A connection string to connect with.\n" \
+"     * @param string $username The username to authenticate with.\n" \
+"     * @param string $password The password to authenticate with.\n" \
+"     *\n" \
+"     * @private\n" \
+"     * @ignore\n" \
+"     */\n" \
+"    public function __construct($connstr, $username, $password) {\n" \
+"        $this->_me = new _CouchbaseCluster($connstr, $username, $password);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Lists all buckets on this cluster.\n" \
+"     *\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function listBuckets() {\n" \
+"        $path = \"/pools/default/buckets\";\n" \
+"        $res = $this->_me->http_request(2, 1, $path, NULL, 2);\n" \
+"        return json_decode($res, true);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Creates a new bucket on this cluster.\n" \
+"     *\n" \
+"     * @param string $name The bucket name.\n" \
+"     * @param array $opts The options for this bucket.\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function createBucket($name, $opts = array()) {\n" \
+"        $myOpts = array(\n" \
+"            'name' => $name,\n" \
+"            'authType' => 'sasl',\n" \
+"            'bucketType' => 'couchbase',\n" \
+"            'ramQuotaMB' => 100,\n" \
+"            'replicaNumber' => 1\n" \
+"        );\n" \
+"        foreach($opts as $k => $v) {\n" \
+"            $myOpts[$k] = $v;\n" \
+"        }\n" \
+"\n" \
+"        $path = \"/pools/default/buckets\";\n" \
+"        $args = array();\n" \
+"        foreach ($opts as $option => $value) {\n" \
+"            array_push($args, $option . '=' . $value);\n" \
+"        }\n" \
+"        $path .= '?' . implode('&', $args);\n" \
+"\n" \
+"        $res = $this->_me->http_request(2, 2, $path, NULL, 2);\n" \
+"        return json_decode($res, true);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Deletes a bucket from the cluster.\n" \
+"     *\n" \
+"     * @param string $name\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function removeBucket($name) {\n" \
+"        $path = \"/pools/default/buckets/\" + $name;\n" \
+"        $res = $this->_me->http_request(2, 4, $path, NULL, 2);\n" \
+"        return json_decode($res, true);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Retrieves cluster status information\n" \
+"     *\n" \
+"     * Returns an associative array of status information as seen\n" \
+"     * on the cluster.  The exact structure of the returned data\n" \
+"     * can be seen in the Couchbase Manual by looking at the\n" \
+"     * cluster /info endpoint.\n" \
+"     *\n" \
+"     * @return mixed The status information.\n" \
+"     *\n" \
+"     * @throws CouchbaseException\n" \
+"     */\n" \
+"    public function info() {\n" \
+"        $path = \"/pools/default\";\n" \
+"        $res = $this->_me->http_request(2, 1, $path, NULL, 2);\n" \
+"        return json_decode($res, true);\n" \
+"    }\n" \
+"} \n" \
+"/**\n" \
+" * Represents a bucket connection.\n" \
+" *\n" \
+" * Note: This class must be constructed by calling the openBucket\n" \
+" * method of the CouchbaseCluster class.\n" \
+" *\n" \
+" * @property integer $operationTimeout\n" \
+" * @property integer $viewTimeout\n" \
+" * @property integer $durabilityInterval\n" \
+" * @property integer $durabilityTimeout\n" \
+" * @property integer $httpTimeout\n" \
+" * @property integer $configTimeout\n" \
+" * @property integer $configDelay\n" \
+" * @property integer $configNodeTimeout\n" \
+" * @property integer $htconfigIdleTimeout\n" \
+" *\n" \
+" * @package Couchbase\n" \
+" *\n" \
+" * @see CouchbaseCluster::openBucket()\n" \
+" */\n" \
+"class CouchbaseBucket {\n" \
+"    /**\n" \
+"     * @var _CouchbaseBucket\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * Pointer to our C binding backing class.\n" \
+"     */\n" \
+"    private $me;\n" \
+"\n" \
+"    /**\n" \
+"     * @var string\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * The name of the bucket this object represents.\n" \
+"     */\n" \
+"    private $name;\n" \
+"\n" \
+"    /**\n" \
+"     * @var _CouchbaseCluster\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * Pointer to a manager instance if there is one.\n" \
+"     */\n" \
+"    private $_manager;\n" \
+"\n" \
+"    /**\n" \
+"     * @var array\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * A list of N1QL nodes to query.\n" \
+"     */\n" \
+"    private $queryhosts = NULL;\n" \
+"\n" \
+"    /**\n" \
+"     * Constructs a bucket connection.\n" \
+"     *\n" \
+"     * @private\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * @param string $dsn A cluster DSN to connect with.\n" \
+"     * @param string $name The name of the bucket to connect to.\n" \
+"     * @param string $password The password to authenticate with.\n" \
+"     *\n" \
+"     * @private\n" \
+"     */\n" \
+"    public function __construct($dsn, $name, $password) {\n" \
+"        $this->me = new _CouchbaseBucket($dsn, $name, $password);\n" \
+"        $this->me->setTranscoder(\"couchbase_default_encoder\", \"couchbase_default_decoder\");\n" \
+"        $this->name = $name;\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Returns an instance of a CouchbaseBucketManager for performing management\n" \
+"     * operations against a bucket.\n" \
+"     *\n" \
+"     * @return CouchbaseBucketManager\n" \
+"     */\n" \
+"    public function manager() {\n" \
+"        if (!$this->_manager) {\n" \
+"            $this->_manager = new CouchbaseBucketManager(\n" \
+"                $this->me, $this->name);\n" \
+"        }\n" \
+"        return $this->_manager;\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Enables N1QL support on the client.  A cbq-server URI must be passed.\n" \
+"     * This method will be deprecated in the future in favor of automatic\n" \
+"     * configuration through the connected cluster.\n" \
+"     *\n" \
+"     * @param $hosts An array of host/port combinations which are N1QL servers\n" \
+"     * attached to the cluster.\n" \
+"     */\n" \
+"    public function enableN1ql($hosts) {\n" \
+"        if (is_array($hosts)) {\n" \
+"            $this->queryhosts = $hosts;\n" \
+"        } else {\n" \
+"            $this->queryhosts = array($hosts);\n" \
+"        }\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Inserts a document.  This operation will fail if\n" \
+"     * the document already exists on the cluster.\n" \
+"     *\n" \
+"     * @param string|array $ids\n" \
+"     * @param mixed $val\n" \
+"     * @param array $options expiry,flags,groupid\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function insert($ids, $val = NULL, $options = array()) {\n" \
+"        return $this->_endure($ids, $options,\n" \
+"            $this->me->insert($ids, $val, $options));\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Inserts or updates a document, depending on whether the\n" \
+"     * document already exists on the cluster.\n" \
+"     *\n" \
+"     * @param string|array $ids\n" \
+"     * @param mixed $val\n" \
+"     * @param array $options expiry,flags,groupid\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function upsert($ids, $val = NULL, $options = array()) {\n" \
+"        return $this->_endure($ids, $options,\n" \
+"            $this->me->upsert($ids, $val, $options));\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Saves a document.\n" \
+"     *\n" \
+"     * @param string|array $ids\n" \
+"     * @param mixed $val\n" \
+"     * @param array $options cas,expiry,flags,groupid\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function save($ids, $val = NULL, $options = array()) {\n" \
+"        return $this->_endure($ids, $options,\n" \
+"            $this->me->save($ids, $val, $options));\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Deletes a document.\n" \
+"     *\n" \
+"     * @param string|array $ids\n" \
+"     * @param array $options cas,groupid\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function remove($ids, $options = array()) {\n" \
+"        return $this->_endure($ids, $options,\n" \
+"            $this->me->remove($ids, $options));\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Retrieves a document.\n" \
+"     *\n" \
+"     * @param string|array $ids\n" \
+"     * @param array $options lock,groupid\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function get($ids, $options = array()) {\n" \
+"        return $this->me->get($ids, $options);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Retrieves a document and simultaneously updates its expiry.\n" \
+"     *\n" \
+"     * @param string $id\n" \
+"     * @param integer $expiry\n" \
+"     * @param array $options\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function getAndTouch($id, $expiry, $options = array()) {\n" \
+"        $options['expiry'] = $expiry;\n" \
+"        return $this->me->getAndTouch($id, $expiry, $options);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Retrieves a document and locks it.\n" \
+"     *\n" \
+"     * @param string $id\n" \
+"     * @param array $options\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function getAndLock($id, $options = array()) {\n" \
+"        return $this->me->get($id, $options);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Increment or decrements a key (based on $delta).\n" \
+"     *\n" \
+"     * @param string|array $ids\n" \
+"     * @param integer $delta\n" \
+"     * @param array $options initial,expiry,groupid\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function counter($ids, $delta, $options = array()) {\n" \
+"        return $this->_endure($ids, $options,\n" \
+"            $this->me->counter($ids, $delta, $options));\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Unlocks a key previous locked with a call to get().\n" \
+"     * @param string|array $ids\n" \
+"     * @param array $options cas,groupid\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function unlock($ids, $options = array()) {\n" \
+"        return $this->me->unlock($ids, $options);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Executes a view query\n" \
+"     *\n" \
+"     * @internal\n" \
+"     *\n" \
+"     * @param string $ddoc\n" \
+"     * @param string $view\n" \
+"     * @param array $options\n" \
+"     * @return mixed\n" \
+"     * @throws CouchbaseException\n" \
+"     */\n" \
+"    public function _view($type, $ddoc, $view, $options) {\n" \
+"        $path = '/_design/' . $ddoc . '/' . $type . '/' . $view;\n" \
+"        $args = array();\n" \
+"        foreach ($options as $option => $value) {\n" \
+"            array_push($args, $option . '=' . $value);\n" \
+"        }\n" \
+"        $path .= '?' . implode('&', $args);\n" \
+"        $res = $this->me->http_request(1, 1, $path, NULL, 1);\n" \
+"        $out = json_decode($res, true);\n" \
+"        if ($out['error']) {\n" \
+"            throw new CouchbaseException($out['error'] . ': ' . $out['reason']);\n" \
+"        }\n" \
+"        return $out;\n" \
+"    }\n" \
+"\n" \
+"    public function _query($dmlstring) {\n" \
+"        if ($this->queryhosts == NULL) {\n" \
+"            throw new CouchbaseException('no available query nodes');\n" \
+"        }\n" \
+"\n" \
+"        $hostidx = array_rand($this->queryhosts, 1);\n" \
+"        $host = $this->queryhosts[$hostidx];\n" \
+"\n" \
+"        $ch = curl_init();\n" \
+"        curl_setopt($ch, CURLOPT_URL, 'http://' . $host . '/query');\n" \
+"        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);\n" \
+"        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');\n" \
+"        curl_setopt($ch, CURLOPT_POSTFIELDS, $dmlstring);\n" \
+"        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\n" \
+"        curl_setopt($ch, CURLOPT_HTTPHEADER, array(\n" \
+"                'Content-Type: text/plain',\n" \
+"                'Content-Length: ' . strlen($dmlstring))\n" \
+"        );\n" \
+"        $result = curl_exec($ch);\n" \
+"        curl_close($ch);\n" \
+"\n" \
+"        $resjson = json_decode($result, true);\n" \
+"\n" \
+"        if (isset($resjson['error'])) {\n" \
+"            throw new CouchbaseException($resjson['error']['cause'], 999);\n" \
+"        }\n" \
+"\n" \
+"        return $resjson['resultset'];\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Performs a query (either ViewQuery or N1qlQuery).\n" \
+"     *\n" \
+"     * @param CouchbaseQuery $query\n" \
+"     * @return mixed\n" \
+"     * @throws CouchbaseException\n" \
+"     */\n" \
+"    public function query($query) {\n" \
+"        if ($query instanceof _CouchbaseDefaultViewQuery) {\n" \
+"            return $this->_view('_view', $query->ddoc, $query->name, $query->options);\n" \
+"        } else if ($query instanceof _CouchbaseSpatialViewQuery) {\n" \
+"            return $this->_view('_spatial', $query->ddoc, $query->name, $query->options);\n" \
+"        } else if ($query instanceof CouchbaseN1qlQuery) {\n" \
+"            return $this->_query($query->querystr);\n" \
+"        } else {\n" \
+"            throw new CouchbaseException(\n" \
+"                'Passed object must be of type ViewQuery or N1qlQuery');\n" \
+"        }\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Flushes a bucket (clears all data).\n" \
+"     *\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function flush() {\n" \
+"        return $this->me->flush();\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Sets custom encoder and decoder functions for handling serialization.\n" \
+"     *\n" \
+"     * @param string $encoder The encoder function name\n" \
+"     * @param string $decoder The decoder function name\n" \
+"     */\n" \
+"    public function setTranscoder($encoder, $decoder) {\n" \
+"        return $this->me->setTranscoder($encoder, $decoder);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Ensures durability requirements are met for an executed\n" \
+"     *  operation.  Note that this function will automatically\n" \
+"     *  determine the result types and check for any failures.\n" \
+"     *\n" \
+"     * @private\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * @param $id\n" \
+"     * @param $res\n" \
+"     * @param $options\n" \
+"     * @return mixed\n" \
+"     * @throws Exception\n" \
+"     */\n" \
+"    private function _endure($id, $options, $res) {\n" \
+"        if ((!isset($options['persist_to']) || !$options['persist_to']) &&\n" \
+"            (!isset($options['replicate_to']) || !$options['replicate_to'])) {\n" \
+"            return $res;\n" \
+"        }\n" \
+"        if (is_array($res)) {\n" \
+"            // Build list of keys to check\n" \
+"            $chks = array();\n" \
+"            foreach ($res as $key => $result) {\n" \
+"                if (!$result->error) {\n" \
+"                    $chks[$key] = array(\n" \
+"                        'cas' => $result->cas\n" \
+"                    );\n" \
+"                }\n" \
+"            }\n" \
+"\n" \
+"            // Do the checks\n" \
+"            $dres = $this->me->durability($chks, array(\n" \
+"                'persist_to' => $options['persist_to'],\n" \
+"                'replicate_to' => $options['replicate_to']\n" \
+"            ));\n" \
+"\n" \
+"            // Copy over the durability errors\n" \
+"            foreach ($dres as $key => $result) {\n" \
+"                if (!$result) {\n" \
+"                    $res[$key]->error = $result->error;\n" \
+"                }\n" \
+"            }\n" \
+"\n" \
+"            return $res;\n" \
+"        } else {\n" \
+"            if ($res->error) {\n" \
+"                return $res;\n" \
+"            }\n" \
+"\n" \
+"            $dres = $this->me->durability(array(\n" \
+"                $id => array('cas' => $res->cas)\n" \
+"            ), array(\n" \
+"                'persist_to' => $options['persist_to'],\n" \
+"                'replicate_to' => $options['replicate_to']\n" \
+"            ));\n" \
+"\n" \
+"            if ($dres) {\n" \
+"                return $res;\n" \
+"            } else {\n" \
+"                throw new Exception('durability requirements failed');\n" \
+"            }\n" \
+"        }\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Magic function to handle the retrieval of various properties.\n" \
+"     *\n" \
+"     * @internal\n" \
+"     */\n" \
+"    public function __get($name) {\n" \
+"        if ($name == 'operationTimeout') {\n" \
+"            return $this->me->getOption(COUCHBASE_CNTL_OP_TIMEOUT);\n" \
+"        } else if ($name == 'viewTimeout') {\n" \
+"            return $this->me->getOption(COUCHBASE_CNTL_VIEW_TIMEOUT);\n" \
+"        } else if ($name == 'durabilityInterval') {\n" \
+"            return $this->me->getOption(COUCHBASE_CNTL_DURABILITY_INTERVAL);\n" \
+"        } else if ($name == 'durabilityTimeout') {\n" \
+"            return $this->me->getOption(COUCHBASE_CNTL_DURABILITY_TIMEOUT);\n" \
+"        } else if ($name == 'httpTimeout') {\n" \
+"            return $this->me->getOption(COUCHBASE_CNTL_HTTP_TIMEOUT);\n" \
+"        } else if ($name == 'configTimeout') {\n" \
+"            return $this->me->getOption(COUCHBASE_CNTL_CONFIGURATION_TIMEOUT);\n" \
+"        } else if ($name == 'configDelay') {\n" \
+"            return $this->me->getOption(COUCHBASE_CNTL_CONFDELAY_THRESH);\n" \
+"        } else if ($name == 'configNodeTimeout') {\n" \
+"            return $this->me->getOption(COUCHBASE_CNTL_CONFIG_NODE_TIMEOUT);\n" \
+"        } else if ($name == 'htconfigIdleTimeout') {\n" \
+"            return $this->me->getOption(COUCHBASE_CNTL_HTCONFIG_IDLE_TIMEOUT);\n" \
+"        }\n" \
+"\n" \
+"        $trace = debug_backtrace();\n" \
+"        trigger_error(\n" \
+"            'Undefined property via __get(): ' . $name .\n" \
+"            ' in ' . $trace[0]['file'] .\n" \
+"            ' on line ' . $trace[0]['line'],\n" \
+"            E_USER_NOTICE);\n" \
+"        return null;\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Magic function to handle the setting of various properties.\n" \
+"     *\n" \
+"     * @internal\n" \
+"     */\n" \
+"    public function __set($name, $value) {\n" \
+"        if ($name == 'operationTimeout') {\n" \
+"            return $this->me->setOption(COUCHBASE_CNTL_OP_TIMEOUT, $value);\n" \
+"        } else if ($name == 'viewTimeout') {\n" \
+"            return $this->me->setOption(COUCHBASE_CNTL_VIEW_TIMEOUT, $value);\n" \
+"        } else if ($name == 'durabilityInterval') {\n" \
+"            return $this->me->setOption(COUCHBASE_CNTL_DURABILITY_INTERVAL, $value);\n" \
+"        } else if ($name == 'durabilityTimeout') {\n" \
+"            return $this->me->setOption(COUCHBASE_CNTL_DURABILITY_TIMEOUT, $value);\n" \
+"        } else if ($name == 'httpTimeout') {\n" \
+"            return $this->me->setOption(COUCHBASE_CNTL_HTTP_TIMEOUT, $value);\n" \
+"        } else if ($name == 'configTimeout') {\n" \
+"            return $this->me->setOption(COUCHBASE_CNTL_CONFIGURATION_TIMEOUT, $value);\n" \
+"        } else if ($name == 'configDelay') {\n" \
+"            return $this->me->setOption(COUCHBASE_CNTL_CONFDELAY_THRESH, $value);\n" \
+"        } else if ($name == 'configNodeTimeout') {\n" \
+"            return $this->me->setOption(COUCHBASE_CNTL_CONFIG_NODE_TIMEOUT, $value);\n" \
+"        } else if ($name == 'htconfigIdleTimeout') {\n" \
+"            return $this->me->setOption(COUCHBASE_CNTL_HTCONFIG_IDLE_TIMEOUT, $value);\n" \
+"        }\n" \
+"\n" \
+"        $trace = debug_backtrace();\n" \
+"        trigger_error(\n" \
+"            'Undefined property via __set(): ' . $name .\n" \
+"            ' in ' . $trace[0]['file'] .\n" \
+"            ' on line ' . $trace[0]['line'],\n" \
+"            E_USER_NOTICE);\n" \
+"        return null;\n" \
+"    }\n" \
+"}\n" \
+"class CouchbaseBucketManager {\n" \
+"    /**\n" \
+"     * @var _CouchbaseBucket\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * Pointer to our C binding backing class.\n" \
+"     */\n" \
+"    private $_me;\n" \
+"\n" \
+"    /**\n" \
+"     * @var string\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * Name of the bucket we are managing\n" \
+"     */\n" \
+"    private $_name;\n" \
+"\n" \
+"    /**\n" \
+"     * @private\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * @param $binding\n" \
+"     * @param $name\n" \
+"     */\n" \
+"    public function __construct($binding, $name) {\n" \
+"        $this->_me = $binding;\n" \
+"        $this->_name = $name;\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Returns all the design documents for this bucket.\n" \
+"     *\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function getDesignDocuments() {\n" \
+"        $path = \"/pools/default/buckets/\" . $this->_name . '/ddocs';\n" \
+"        $res = $this->_me->http_request(2, 1, $path, NULL, 2);\n" \
+"        $ddocs = array();\n" \
+"        $data = json_decode($res, true);\n" \
+"        foreach ($data['rows'] as $row) {\n" \
+"            $name = substr($row['meta']['id'], 8);\n" \
+"            $ddocs[$name] = $row['json'];\n" \
+"        }\n" \
+"        return $ddocs;\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Inserts a design document to this bucket.  Failing if a design\n" \
+"     * document with the same name already exists.\n" \
+"     *\n" \
+"     * @param $name Name of the design document.\n" \
+"     * @param $data The design document data.\n" \
+"     * @throws CouchbaseException\n" \
+"     * @returns true\n" \
+"     */\n" \
+"    public function insertDesignDocument($name, $data) {\n" \
+"        if ($this->getDesignDocument($name)) {\n" \
+"            throw new CouchbaseException('design document already exists');\n" \
+"        }\n" \
+"        return $this->upsertDesignDocument($name, $data);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Inserts a design document to this bucket.  Overwriting any existing\n" \
+"     * design document with the same name.\n" \
+"     *\n" \
+"     * @param $name Name of the design document.\n" \
+"     * @param $data The design document data.\n" \
+"     * @returns true\n" \
+"     */\n" \
+"    public function upsertDesignDocument($name, $data) {\n" \
+"        $path = '_design/' . $name;\n" \
+"        $res = $this->_me->http_request(1, 3, $path, json_encode($data), 2);\n" \
+"        return true;\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Retrieves a design documents from the bucket.\n" \
+"     *\n" \
+"     * @param $name Name of the design document.\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function getDesignDocument($name) {\n" \
+"        $path = '_design/' . $name;\n" \
+"        $res = $this->_me->http_request(1, 1, $path, NULL, 2);\n" \
+"        return json_decode($res, true);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Deletes a design document from the bucket.\n" \
+"     *\n" \
+"     * @param $name Name of the design document.\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function removeDesignDocument($name) {\n" \
+"        $path = '_design/' . $name;\n" \
+"        $res = $this->_me->http_request(1, 4, $path, NULL, 2);\n" \
+"        return json_decode($res, true);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Retrieves bucket status information\n" \
+"     *\n" \
+"     * Returns an associative array of status information as seen\n" \
+"     * by the cluster for this bucket.  The exact structure of the\n" \
+"     * returned data can be seen in the Couchbase Manual by looking\n" \
+"     * at the bucket /info endpoint.\n" \
+"     *\n" \
+"     * @return mixed The status information.\n" \
+"     */\n" \
+"    public function info()\n" \
+"    {\n" \
+"        $path = \"/pools/default/buckets/\" . $this->name;\n" \
+"        $res = $this->_me->http_request(2, 1, $path, NULL, 2);\n" \
+"        return json_decode($res, true);\n" \
+"    }\n" \
+"} \n" \
 "";

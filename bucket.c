@@ -475,9 +475,10 @@ PHP_METHOD(Bucket, __construct)
 	{
         memset(&create_options, 0, sizeof(create_options));
         create_options.version = 3;
-        create_options.v.v3.dsn = dsn;
+        create_options.v.v3.connstr = dsn;
         create_options.v.v3.username = name;
         create_options.v.v3.passwd = password;
+        create_options.v.v3.type = LCB_TYPE_BUCKET;
         err = lcb_create(&instance, &create_options);
 
         if (dsn) efree(dsn);
@@ -770,11 +771,12 @@ PHP_METHOD(Bucket, get)
 	const lcb_get_cmd_t **cmds = NULL;
 	int ii, num_cmds;
 	pcbc_pp_state pp_state;
-	zval *zid, *zlock, *zgroupid;
+	zval *zid, *zlock, *zexpiry, *zgroupid;
 	op_cookie *cookie;
 
-	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id||lock,groupid",
-				  &zid, &zlock, &zgroupid);
+	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+	              "id||lockTime,expiry,groupid",
+				  &zid, &zlock, &zexpiry, &zgroupid);
 
 	num_cmds = pcbc_pp_keycount(&pp_state);
 	cmd = emalloc(sizeof(lcb_get_cmd_t) * num_cmds);
@@ -784,13 +786,18 @@ PHP_METHOD(Bucket, get)
 	for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
 		PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
 		PCBC_CHECK_ZVAL(zlock, IS_LONG, "lock must be an integer");
+		PCBC_CHECK_ZVAL(zexpiry, IS_LONG, "expiry must be an integer");
 		PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
 
 		cmd[ii].version = 0;
 		cmd[ii].v.v0.key = Z_STRVAL_P(zid);
 		cmd[ii].v.v0.nkey = Z_STRLEN_P(zid);
-		if (zlock) {
-			cmd[ii].v.v0.lock = Z_LVAL_P(zlock);
+		if (zexpiry) {
+		    cmd[ii].v.v0.lock = 0;
+		    cmd[ii].v.v0.exptime = Z_LVAL_P(zexpiry);
+		} else if (zlock) {
+		    cmd[ii].v.v0.lock = 1;
+            cmd[ii].v.v0.exptime = Z_LVAL_P(zlock);
 		}
 		if (zgroupid) {
 			cmd[ii].v.v0.hashkey = Z_STRVAL_P(zgroupid);

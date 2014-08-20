@@ -243,39 +243,12 @@ class BucketTest extends CouchbaseTestCase {
         $res = $b->upsert($key, 'jog');
         $this->assertValidMetaDoc($res, 'cas');
 
-        $res = $b->get($key, array('lock' => 1));
+        $res = $b->getAndLock($key, array('lockTime' => 1));
         $this->assertValidMetaDoc($res, 'value', 'flags', 'cas');
 
         $this->wrapException(function() use($b, $key) {
-            $b->get($key, array('lock' => 1));
+            $b->getAndLock($key, array('lockTime' => 1));
         }, 'CouchbaseException', COUCHBASE_TMPFAIL);
-    }
-
-    /**
-     * @test
-     * Test that the CouchbaseBucketDProxy has the same methods
-     * available as CouchbaseBucket itself does.
-     */
-    function testDProxyMethods() {
-        $classa = new ReflectionClass('CouchbaseBucket');
-        $methodsa = $classa->getMethods(ReflectionMethod::IS_PUBLIC);
-
-        $classb = new ReflectionClass('CouchbaseBucketDProxy');
-        $methodsb = $classb->getMethods(ReflectionMethod::IS_PUBLIC);
-
-        for ($i = 0; $i < count($methodsa); ++$i) {
-            $method = $methodsa[$i]->name;
-
-            $found = false;
-            for ($j = 0; $j < count($methodsb); ++$j) {
-                if ($methodsb[$j]->name == $method) {
-                    $found = true;
-                    break;
-                }
-            }
-
-            $this->assertEquals(true, $found, 'Could not find method : ' . $method);
-        }
     }
     
     /**
@@ -366,5 +339,5 @@ class BucketTest extends CouchbaseTestCase {
         $this->assertValidMetaDoc($res, 'value', 'cas', 'flags');
         $this->assertEquals($res->value, 'yes');
     }
-    
+
 }
