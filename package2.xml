@@ -14,10 +14,10 @@
     <email>brett@couchbase.com</email>
     <active>yes</active>
   </lead>
-  <date>2014-06-24</date>
+  <date>2014-08-21</date>
   <version>
-    <release>2.0.0dp2</release>
-    <api>2.0.0</api>
+    <release>2.0.0beta</release>
+    <api>2.0.0beta</api>
   </version>
   <stability>
     <release>beta</release>
@@ -69,8 +69,8 @@
     <release>
       <date>2014-04-28</date>
       <version>
-        <release>2.0.0-dp1</release>
-        <api>2.0.0</api>
+        <release>2.0.0dp1</release>
+        <api>2.0.0dp1</api>
       </version>
       <stability>
         <release>beta</release>
@@ -83,8 +83,8 @@
     <release>
       <date>2014-06-24</date>
       <version>
-        <release>2.0.0-dp2</release>
-        <api>2.0.0-dp2</api>
+        <release>2.0.0dp2</release>
+        <api>2.0.0dp2</api>
       </version>
       <stability>
         <release>beta</release>
@@ -99,5 +99,23 @@
   * Client-side support for SSL connections.
       </notes>
     </release>
+      <release>
+          <date>2014-08-21</date>
+          <version>
+              <release>2.0.0beta</release>
+              <api>2.0.0beta</api>
+          </version>
+          <stability>
+              <release>beta</release>
+              <api>beta</api>
+          </stability>
+          <notes>
+              This is a minor update to the existing PHP 2.0 developer preview 2.
+
+              Changes:
+              * Added uncommited by stable management APIs.
+              * Made minor changes to various methods to allow easier use.
+          </notes>
+      </release>
   </changelog>
 </package>
