@@ -42,12 +42,12 @@ class CouchbaseViewQuery {
     }
 
     public function skip($skip) {
-        $this->options['skip'] = $skip;
+        $this->options['skip'] = '' . $skip;
         return $this;
     }
 
     public function limit($limit) {
-        $this->options['limit'] = $limit;
+        $this->options['limit'] = '' . $limit;
         return $this;
     }
 
@@ -65,9 +65,9 @@ class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {
 
     public function order($order) {
         if ($order == self::ORDER_ASCENDING) {
-            $this->options['descending'] = false;
+            $this->options['descending'] = 'false';
         } else if ($order == self::ORDER_DESCENDING) {
-            $this->options['descending'] = true;
+            $this->options['descending'] = 'true';
         } else {
             throw new CouchbaseException('invalid option passed.');
         }
@@ -75,17 +75,21 @@ class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {
     }
 
     public function reduce($reduce) {
-        $this->options['reduce'] = $reduce;
+        if ($reduce) {
+            $this->options['reduce'] = 'true';
+        } else {
+            $this->options['reduce'] = 'false';
+        }
         return $this;
     }
 
     public function group($group_level) {
         if ($group_level >= 0) {
-            $this->options['group'] = false;
-            $this->options['group_level'] = $group_level;
+            $this->options['group'] = 'false';
+            $this->options['group_level'] = '' . $group_level;
         } else {
-            $this->options['group'] = true;
-            $this->options['group_level'] = 0;
+            $this->options['group'] = 'true';
+            $this->options['group_level'] = '0';
         }
         return $this;
     }
@@ -96,33 +100,38 @@ class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {
     }
 
     public function keys($keys) {
-        $this->options['keys'] = json_encode($keys);
+        $this->options['keys'] =
+            str_replace('\\\\', '\\', json_encode($keys));
         return $this;
     }
 
     public function range($start = NULL, $end = NULL, $inclusive_end = false) {
         if ($start !== NULL) {
-            $this->options['startkey'] = json_encode($start);
+            $this->options['startkey'] =
+                str_replace('\\\\', '\\', json_encode($start));
         } else {
             $this->options['startkey'] = '';
         }
         if ($end !== NULL) {
-            $this->options['endkey'] = json_encode($end);
+            $this->options['endkey'] =
+                str_replace('\\\\', '\\', json_encode($end));
         } else {
             $this->options['endkey'] = '';
         }
-        $this->options['inclusive_end'] = $inclusive_end;
+        $this->options['inclusive_end'] = $inclusive_end ? 'true' : 'false';
         return $this;
     }
 
     public function id_range($start = NULL, $end = NULL) {
         if ($start !== NULL) {
-            $this->options['startkey_docid'] = json_encode($start);
+            $this->options['startkey_docid'] =
+                str_replace('\\\\', '\\', json_encode($start));
         } else {
             $this->options['startkey_docid'] = '';
         }
         if ($end !== NULL) {
-            $this->options['startkey_docid'] = json_encode($end);
+            $this->options['startkey_docid'] =
+                str_replace('\\\\', '\\', json_encode($end));
         } else {
             $this->options['startkey_docid'] = '';
         }

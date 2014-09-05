@@ -88,14 +88,14 @@ char *PCBC_PHP_CODESTR = \
 "        return $out;\n" \
 "    }\n" \
 "\n" \
-"    preg_match(\"/((.*):\\/\\/)?([^\\/?]*)(\\/([^\\?]*))?(\\?(.*))?/\", $dsn, $parts);\n" \
+"    preg_match(\"/((.*):\\\\/\\\\/)?([^\\\\/?]*)(\\\\/([^\\\\?]*))?(\\\\?(.*))?/\", $dsn, $parts);\n" \
 "    if (isset($parts[2])) {\n" \
 "        $out['scheme'] = $parts[2];\n" \
 "    }\n" \
 "    if (isset($parts[3])) {\n" \
 "        $out['hosts'] = array();\n" \
 "\n" \
-"        preg_match_all(\"/([^;\\,\\:]+)(:([0-9]*))?(;\\,)?/\", $parts[3], $hosts, PREG_SET_ORDER);\n" \
+"        preg_match_all(\"/([^;\\\\,\\\\:]+)(:([0-9]*))?(;\\\\,)?/\", $parts[3], $hosts, PREG_SET_ORDER);\n" \
 "        foreach($hosts as $host) {\n" \
 "            array_push($out['hosts'], array(\n" \
 "                $host[1],\n" \
@@ -299,7 +299,7 @@ char *PCBC_PHP_CODESTR = \
 " * @internal\n" \
 " */\n" \
 "function couchbase_passthru_encoder($value) {\n" \
-"    return $value;\n" \
+"    return array($value, 0, 0);\n" \
 "}\n" \
 "\n" \
 "/**\n" \
@@ -375,12 +375,12 @@ char *PCBC_PHP_CODESTR = \
 "    }\n" \
 "\n" \
 "    public function skip($skip) {\n" \
-"        $this->options['skip'] = $skip;\n" \
+"        $this->options['skip'] = '' . $skip;\n" \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
 "    public function limit($limit) {\n" \
-"        $this->options['limit'] = $limit;\n" \
+"        $this->options['limit'] = '' . $limit;\n" \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
@@ -398,9 +398,9 @@ char *PCBC_PHP_CODESTR = \
 "\n" \
 "    public function order($order) {\n" \
 "        if ($order == self::ORDER_ASCENDING) {\n" \
-"            $this->options['descending'] = false;\n" \
+"            $this->options['descending'] = 'false';\n" \
 "        } else if ($order == self::ORDER_DESCENDING) {\n" \
-"            $this->options['descending'] = true;\n" \
+"            $this->options['descending'] = 'true';\n" \
 "        } else {\n" \
 "            throw new CouchbaseException('invalid option passed.');\n" \
 "        }\n" \
@@ -408,17 +408,21 @@ char *PCBC_PHP_CODESTR = \
 "    }\n" \
 "\n" \
 "    public function reduce($reduce) {\n" \
-"        $this->options['reduce'] = $reduce;\n" \
+"        if ($reduce) {\n" \
+"            $this->options['reduce'] = 'true';\n" \
+"        } else {\n" \
+"            $this->options['reduce'] = 'false';\n" \
+"        }\n" \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
 "    public function group($group_level) {\n" \
 "        if ($group_level >= 0) {\n" \
-"            $this->options['group'] = false;\n" \
-"            $this->options['group_level'] = $group_level;\n" \
+"            $this->options['group'] = 'false';\n" \
+"            $this->options['group_level'] = '' . $group_level;\n" \
 "        } else {\n" \
-"            $this->options['group'] = true;\n" \
-"            $this->options['group_level'] = 0;\n" \
+"            $this->options['group'] = 'true';\n" \
+"            $this->options['group_level'] = '0';\n" \
 "        }\n" \
 "        return $this;\n" \
 "    }\n" \
@@ -429,33 +433,38 @@ char *PCBC_PHP_CODESTR = \
 "    }\n" \
 "\n" \
 "    public function keys($keys) {\n" \
-"        $this->options['keys'] = json_encode($keys);\n" \
+"        $this->options['keys'] =\n" \
+"            str_replace('\\\\\\\\', '\\\\', json_encode($keys));\n" \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
 "    public function range($start = NULL, $end = NULL, $inclusive_end = false) {\n" \
 "        if ($start !== NULL) {\n" \
-"            $this->options['startkey'] = json_encode($start);\n" \
+"            $this->options['startkey'] =\n" \
+"                str_replace('\\\\\\\\', '\\\\', json_encode($start));\n" \
 "        } else {\n" \
 "            $this->options['startkey'] = '';\n" \
 "        }\n" \
 "        if ($end !== NULL) {\n" \
-"            $this->options['endkey'] = json_encode($end);\n" \
+"            $this->options['endkey'] =\n" \
+"                str_replace('\\\\\\\\', '\\\\', json_encode($end));\n" \
 "        } else {\n" \
 "            $this->options['endkey'] = '';\n" \
 "        }\n" \
-"        $this->options['inclusive_end'] = $inclusive_end;\n" \
+"        $this->options['inclusive_end'] = $inclusive_end ? 'true' : 'false';\n" \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
 "    public function id_range($start = NULL, $end = NULL) {\n" \
 "        if ($start !== NULL) {\n" \
-"            $this->options['startkey_docid'] = json_encode($start);\n" \
+"            $this->options['startkey_docid'] =\n" \
+"                str_replace('\\\\\\\\', '\\\\', json_encode($start));\n" \
 "        } else {\n" \
 "            $this->options['startkey_docid'] = '';\n" \
 "        }\n" \
 "        if ($end !== NULL) {\n" \
-"            $this->options['startkey_docid'] = json_encode($end);\n" \
+"            $this->options['startkey_docid'] =\n" \
+"                str_replace('\\\\\\\\', '\\\\', json_encode($end));\n" \
 "        } else {\n" \
 "            $this->options['startkey_docid'] = '';\n" \
 "        }\n" \
