@@ -216,19 +216,12 @@ class CouchbaseBucket {
      *
      * @internal
      *
-     * @param string $ddoc
-     * @param string $view
-     * @param array $options
+     * @param ViewQuery $queryObj
      * @return mixed
      * @throws CouchbaseException
      */
-    public function _view($type, $ddoc, $view, $options) {
-        $path = '/_design/' . $ddoc . '/' . $type . '/' . $view;
-        $args = array();
-        foreach ($options as $option => $value) {
-            array_push($args, $option . '=' . $value);
-        }
-        $path .= '?' . implode('&', $args);
+    public function _view($queryObj) {
+        $path = $queryObj->toString();
         $res = $this->me->http_request(1, 1, $path, NULL, 1);
         $out = json_decode($res, true);
         if (isset($out['error'])) {
@@ -275,10 +268,9 @@ class CouchbaseBucket {
      * @throws CouchbaseException
      */
     public function query($query) {
-        if ($query instanceof _CouchbaseDefaultViewQuery) {
-            return $this->_view('_view', $query->ddoc, $query->name, $query->options);
-        } else if ($query instanceof _CouchbaseSpatialViewQuery) {
-            return $this->_view('_spatial', $query->ddoc, $query->name, $query->options);
+        if ($query instanceof _CouchbaseDefaultViewQuery ||
+            $query instanceof _CouchbaseSpatialViewQuery) {
+            return $this->_view($query);
         } else if ($query instanceof CouchbaseN1qlQuery) {
             return $this->_query($query->querystr);
         } else {

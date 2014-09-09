@@ -7,4 +7,8 @@ class CouchbaseN1qlQuery {
         $res->querystr = $str;
         return $res;
     }
+
+    public function toString() {
+        return $this->querystr;
+    }
 }

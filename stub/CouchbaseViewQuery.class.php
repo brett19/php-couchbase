@@ -57,6 +57,16 @@ class CouchbaseViewQuery {
         }
         return $this;
     }
+
+    public function _toString($type) {
+        $path = '/_design/' . $this->ddoc . '/' . $type . '/' . $this->view;
+        $args = array();
+        foreach ($this->options as $option => $value) {
+            array_push($args, $option . '=' . $value);
+        }
+        $path .= '?' . implode('&', $args);
+        return $path;
+    }
 };
 
 class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {
@@ -137,6 +147,10 @@ class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {
         }
         return $this;
     }
+
+    public function toString() {
+        return $this->_toString('_view');
+    }
 };
 
 class _CouchbaseSpatialViewQuery extends CouchbaseViewQuery {
@@ -146,5 +160,9 @@ class _CouchbaseSpatialViewQuery extends CouchbaseViewQuery {
     public function bbox($bbox) {
         $this->options['bbox'] = implode(',', $bbox);
         return $this;
+    }
+
+    public function toString() {
+        return $this->_toString('_spatial');
     }
 };
