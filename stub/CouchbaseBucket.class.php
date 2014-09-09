@@ -129,16 +129,16 @@ class CouchbaseBucket {
     }
 
     /**
-     * Saves a document.
+     * Replaces a document.
      *
      * @param string|array $ids
      * @param mixed $val
      * @param array $options cas,expiry,flags,groupid
      * @return mixed
      */
-    public function save($ids, $val = NULL, $options = array()) {
+    public function replace($ids, $val = NULL, $options = array()) {
         return $this->_endure($ids, $options,
-            $this->me->save($ids, $val, $options));
+            $this->me->replace($ids, $val, $options));
     }
 
     /**

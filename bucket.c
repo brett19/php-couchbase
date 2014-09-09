@@ -653,7 +653,7 @@ PHP_METHOD(Bucket, upsert)
 }
 
 // save($id, $doc {, $cas, $expiry, $groupid}) : MetaDoc
-PHP_METHOD(Bucket, save)
+PHP_METHOD(Bucket, replace)
 {
 	bucket_object *data = PHP_THISOBJ();
 	lcb_store_cmd_t *cmd = NULL;
@@ -1160,7 +1160,7 @@ zend_function_entry bucket_methods[] = {
 
     PHP_ME(Bucket,  insert,          NULL, ZEND_ACC_PUBLIC)
     PHP_ME(Bucket,  upsert,          NULL, ZEND_ACC_PUBLIC)
-    PHP_ME(Bucket,  save,            NULL, ZEND_ACC_PUBLIC)
+    PHP_ME(Bucket,  replace,         NULL, ZEND_ACC_PUBLIC)
     PHP_ME(Bucket,  remove,          NULL, ZEND_ACC_PUBLIC)
     PHP_ME(Bucket,  get,             NULL, ZEND_ACC_PUBLIC)
     PHP_ME(Bucket,  getFromReplica,  NULL, ZEND_ACC_PUBLIC)
