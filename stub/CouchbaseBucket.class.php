@@ -231,7 +231,7 @@ class CouchbaseBucket {
         $path .= '?' . implode('&', $args);
         $res = $this->me->http_request(1, 1, $path, NULL, 1);
         $out = json_decode($res, true);
-        if ($out['error']) {
+        if (isset($out['error'])) {
             throw new CouchbaseException($out['error'] . ': ' . $out['reason']);
         }
         return $out;
