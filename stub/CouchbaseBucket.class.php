@@ -189,6 +189,17 @@ class CouchbaseBucket {
     }
 
     /**
+     * Retrieves a document from a replica.
+     *
+     * @param string $id
+     * @param array $options
+     * @return mixed
+     */
+    public function getFromReplica($id, $options = array()) {
+        return $this->me->getFromReplica($id, $options);
+    }
+
+    /**
      * Increment or decrements a key (based on $delta).
      *
      * @param string|array $ids

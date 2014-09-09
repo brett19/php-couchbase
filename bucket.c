@@ -817,6 +817,60 @@ PHP_METHOD(Bucket, get)
 	efree(cmd);
 }
 
+// get($id {, $lock, $groupid}) : MetaDoc
+PHP_METHOD(Bucket, getFromReplica)
+{
+    bucket_object *data = PHP_THISOBJ();
+    lcb_get_replica_cmd_t *cmd = NULL;
+    const lcb_get_replica_cmd_t **cmds = NULL;
+    int ii, num_cmds;
+    pcbc_pp_state pp_state;
+    zval *zid, *zindex, *zgroupid;
+    op_cookie *cookie;
+
+    pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+                  "id||index,groupid",
+                  &zid, &zindex, &zgroupid);
+
+    num_cmds = pcbc_pp_keycount(&pp_state);
+    cmd = emalloc(sizeof(lcb_get_replica_cmd_t) * num_cmds);
+    cmds = emalloc(sizeof(lcb_get_replica_cmd_t*) * num_cmds);
+    memset(cmd, 0, sizeof(lcb_get_replica_cmd_t) * num_cmds);
+
+    for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
+        PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
+        PCBC_CHECK_ZVAL(zindex, IS_LONG, "index must be an integer");
+        PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
+
+        cmd[ii].version = 1;
+        cmd[ii].v.v1.key = Z_STRVAL_P(zid);
+        cmd[ii].v.v1.nkey = Z_STRLEN_P(zid);
+        if (zindex) {
+            cmd[ii].v.v1.index = Z_LVAL_P(zindex);
+            if (cmd[ii].v.v1.index >= 0) {
+                cmd[ii].v.v1.strategy = LCB_REPLICA_SELECT;
+            } else {
+                cmd[ii].v.v1.strategy = LCB_REPLICA_FIRST;
+            }
+        }
+        if (zgroupid) {
+            cmd[ii].v.v0.hashkey = Z_STRVAL_P(zgroupid);
+            cmd[ii].v.v0.nhashkey = Z_STRLEN_P(zgroupid);
+        }
+
+        cmds[ii] = &cmd[ii];
+    }
+
+    MAKE_STD_COOKIE(cookie, return_value, pcbc_pp_ismapped(&pp_state));
+
+    lcb_get_replica(data->conn->lcb, cookie, num_cmds, cmds);
+    pcbc_wait(data->conn->lcb TSRMLS_CC);
+
+    efree(cookie);
+    efree(cmds);
+    efree(cmd);
+}
+
 // unlock($id {, $cas, $groupid}) : MetaDoc
 PHP_METHOD(Bucket, unlock)
 {
@@ -1109,6 +1163,7 @@ zend_function_entry bucket_methods[] = {
     PHP_ME(Bucket,  save,            NULL, ZEND_ACC_PUBLIC)
     PHP_ME(Bucket,  remove,          NULL, ZEND_ACC_PUBLIC)
     PHP_ME(Bucket,  get,             NULL, ZEND_ACC_PUBLIC)
+    PHP_ME(Bucket,  getFromReplica,  NULL, ZEND_ACC_PUBLIC)
     PHP_ME(Bucket,  counter,         NULL, ZEND_ACC_PUBLIC)
     PHP_ME(Bucket,  flush,           NULL, ZEND_ACC_PUBLIC)
     PHP_ME(Bucket,  unlock,          NULL, ZEND_ACC_PUBLIC)
