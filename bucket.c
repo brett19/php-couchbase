@@ -547,6 +547,7 @@ PHP_METHOD(Bucket, insert)
 	zval *zid, *zvalue, *zexpiry, *zflags, *zgroupid;
 	op_cookie *cookie;
 
+  // Note that groupid is experimental here and should not be used.
 	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id|value|expiry,flags,groupid",
 				  &zid, &zvalue, &zexpiry, &zflags, &zgroupid);
 
@@ -605,6 +606,7 @@ PHP_METHOD(Bucket, upsert)
 	zval *zid, *zvalue, *zexpiry, *zflags, *zgroupid;
 	op_cookie *cookie;
 
+  // Note that groupid is experimental here and should not be used.
 	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id|value|expiry,flags,groupid",
 				  &zid, &zvalue, &zexpiry, &zflags, &zgroupid);
 
@@ -663,6 +665,7 @@ PHP_METHOD(Bucket, replace)
 	zval *zid, *zvalue, *zcas, *zexpiry, *zflags, *zgroupid;
 	op_cookie *cookie;
 
+  // Note that groupid is experimental here and should not be used.
 	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id|value|cas,expiry,flags,groupid",
 				  &zid, &zvalue, &zcas, &zexpiry, &zflags, &zgroupid);
 
@@ -725,6 +728,7 @@ PHP_METHOD(Bucket, remove)
 	op_cookie *cookie;
 	zval *zid, *zcas, *zgroupid;
 
+  // Note that groupid is experimental here and should not be used.
 	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id||cas,groupid",
 				  &zid, &zcas, &zgroupid);
 
@@ -774,6 +778,7 @@ PHP_METHOD(Bucket, get)
 	zval *zid, *zlock, *zexpiry, *zgroupid;
 	op_cookie *cookie;
 
+  // Note that groupid is experimental here and should not be used.
 	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
 	              "id||lockTime,expiry,groupid",
 				  &zid, &zlock, &zexpiry, &zgroupid);
@@ -828,6 +833,7 @@ PHP_METHOD(Bucket, getFromReplica)
     zval *zid, *zindex, *zgroupid;
     op_cookie *cookie;
 
+    // Note that groupid is experimental here and should not be used.
     pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
                   "id||index,groupid",
                   &zid, &zindex, &zgroupid);
@@ -882,6 +888,7 @@ PHP_METHOD(Bucket, unlock)
 	zval *zid, *zcas, *zgroupid;
 	op_cookie *cookie;
 
+  // Note that groupid is experimental here and should not be used.
 	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id||cas,groupid",
 				  &zid, &zcas, &zgroupid);
 
@@ -930,6 +937,7 @@ PHP_METHOD(Bucket, counter)
 	zval *zid, *zdelta, *zinitial, *zexpiry, *zgroupid;
 	op_cookie *cookie;
 
+  // Note that groupid is experimental here and should not be used.
 	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id|delta|initial,expiry,groupid",
 				  &zid, &zdelta, &zinitial, &zexpiry, &zgroupid);
 

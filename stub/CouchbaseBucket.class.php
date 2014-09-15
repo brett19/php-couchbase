@@ -106,7 +106,7 @@ class CouchbaseBucket {
      *
      * @param string|array $ids
      * @param mixed $val
-     * @param array $options expiry,flags,groupid
+     * @param array $options expiry,flags
      * @return mixed
      */
     public function insert($ids, $val = NULL, $options = array()) {
@@ -120,7 +120,7 @@ class CouchbaseBucket {
      *
      * @param string|array $ids
      * @param mixed $val
-     * @param array $options expiry,flags,groupid
+     * @param array $options expiry,flags
      * @return mixed
      */
     public function upsert($ids, $val = NULL, $options = array()) {
@@ -133,7 +133,7 @@ class CouchbaseBucket {
      *
      * @param string|array $ids
      * @param mixed $val
-     * @param array $options cas,expiry,flags,groupid
+     * @param array $options cas,expiry,flags
      * @return mixed
      */
     public function replace($ids, $val = NULL, $options = array()) {
@@ -145,7 +145,7 @@ class CouchbaseBucket {
      * Deletes a document.
      *
      * @param string|array $ids
-     * @param array $options cas,groupid
+     * @param array $options cas
      * @return mixed
      */
     public function remove($ids, $options = array()) {
@@ -157,7 +157,7 @@ class CouchbaseBucket {
      * Retrieves a document.
      *
      * @param string|array $ids
-     * @param array $options lock,groupid
+     * @param array $options lock
      * @return mixed
      */
     public function get($ids, $options = array()) {
@@ -204,7 +204,7 @@ class CouchbaseBucket {
      *
      * @param string|array $ids
      * @param integer $delta
-     * @param array $options initial,expiry,groupid
+     * @param array $options initial,expiry
      * @return mixed
      */
     public function counter($ids, $delta, $options = array()) {
@@ -215,7 +215,7 @@ class CouchbaseBucket {
     /**
      * Unlocks a key previous locked with a call to get().
      * @param string|array $ids
-     * @param array $options cas,groupid
+     * @param array $options cas
      * @return mixed
      */
     public function unlock($ids, $options = array()) {
