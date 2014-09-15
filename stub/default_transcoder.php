@@ -5,6 +5,17 @@
  * @internal
  */
 $COUCHBASE_DEFAULT_ENCOPTS = array(
+    'sertype' => COUCHBASE_SERTYPE_JSON,
+    'cmprtype' => COUCHBASE_CMPRTYPE_NONE,
+    'cmprthresh' => 0,
+    'cmprfactor' => 0
+);
+
+/**
+ * The default options from past versions of the PHP SDK.
+ * @internal
+ */
+$COUCHBASE_OLD_ENCOPTS = array(
     'sertype' => COUCHBASE_SERTYPE_PHP,
     'cmprtype' => COUCHBASE_CMPRTYPE_NONE,
     'cmprthresh' => 2000,
@@ -33,30 +44,30 @@ function couchbase_basic_encoder_v1($value, $options) {
 
     $vtype = gettype($value);
     if ($vtype == 'string') {
-        $flags = COUCHBASE_VAL_IS_STRING;
+        $flags = COUCHBASE_VAL_IS_STRING | COUCHBASE_CFFMT_STRING;
         $data = $value;
     } else if ($vtype == 'integer') {
-        $flags = COUCHBASE_VAL_IS_LONG;
+        $flags = COUCHBASE_VAL_IS_LONG | COUCHBASE_CFFMT_JSON;
         $data = (string)$value;
         $cmprtype = COUCHBASE_CMPRTYPE_NONE;
     } else if ($vtype == 'double') {
-        $flags = COUCHBASE_VAL_IS_DOUBLE;
+        $flags = COUCHBASE_VAL_IS_DOUBLE | COUCHBASE_CFFMT_JSON;
         $data = (string)$value;
         $cmprtype = COUCHBASE_CMPRTYPE_NONE;
     } else if ($vtype == 'boolean') {
-        $flags = COUCHBASE_VAL_IS_BOOL;
-        $data = (string)$value;
+        $flags = COUCHBASE_VAL_IS_BOOL | COUCHBASE_CFFMT_JSON;
+        $data = $value ? 'true' : 'false';
         $cmprtype = COUCHBASE_CMPRTYPE_NONE;
     } else {
         if ($sertype == COUCHBASE_SERTYPE_JSON) {
-            $flags = COUCHBASE_VAL_IS_JSON;
+            $flags = COUCHBASE_VAL_IS_JSON | COUCHBASE_CFFMT_JSON;
             $datatype = COUCHBASE_VALUE_F_JSON;
             $data = json_encode($value);
         } else if ($sertype == COUCHBASE_SERTYPE_IGBINARY) {
-            $flags = COUCHBASE_VAL_IS_IGBINARY;
+            $flags = COUCHBASE_VAL_IS_IGBINARY | COUCHBASE_CFFMT_PRIVATE;
             $data = igbinary_serialize($value);
         } else if ($sertype == COUCHBASE_SERTYPE_PHP) {
-            $flags = COUCHBASE_VAL_IS_SERIALIZED;
+            $flags = COUCHBASE_VAL_IS_SERIALIZED | COUCHBASE_CFFMT_PRIVATE;
             $data = serialize($value);
         }
     }
@@ -82,6 +93,9 @@ function couchbase_basic_encoder_v1($value, $options) {
                 $data = $cmprdata;
                 $flags |= $cmprflags;
                 $flags |= COUCHBASE_COMPRESSION_MCISCOMPRESSED;
+
+                $flags &= ~COUCHBASE_CFFMT_MASK;
+                $flags |= COUCHBASE_CFFMT_PRIVATE;
             }
         }
     }
@@ -99,33 +113,48 @@ function couchbase_basic_encoder_v1($value, $options) {
  * @param $flags The flags received from the server
  * @param $datatype The datatype received from the server
  * @return mixed The resulting decoded value
+ *
+ * @throws CouchbaseException
  */
 function couchbase_basic_decoder_v1($bytes, $flags, $datatype) {
+    $cffmt = $flags & COUCHBASE_CFFMT_MASK;
     $sertype = $flags & COUCHBASE_VAL_MASK;
     $cmprtype = $flags & COUCHBASE_COMPRESSION_MASK;
 
     $data = $bytes;
-    if ($cmprtype == COUCHBASE_COMPRESSION_ZLIB) {
-        $bytes = gzdecode($bytes);
-    } else if ($cmprtype == COUCHBASE_COMPRESSION_FASTLZ) {
-        $data = fastlz_decompress($bytes);
-    }
+    if ($cffmt != 0 && $cffmt != COUCHBASE_CFFMT_PRIVATE) {
+        if ($cffmt == COUCHBASE_CFFMT_JSON) {
+            $retval = json_decode($data);
+        } else if ($cffmt == COUCHBASE_CFFMT_RAW) {
+            $retval = $data;
+        } else if ($cffmt == COUCHBASE_CFFMT_STRING) {
+            $retval = (string)$data;
+        } else {
+            throw new CouchbaseException("Unknown flags value -- cannot decode value");
+        }
+    } else {
+        if ($cmprtype == COUCHBASE_COMPRESSION_ZLIB) {
+            $bytes = gzdecode($bytes);
+        } else if ($cmprtype == COUCHBASE_COMPRESSION_FASTLZ) {
+            $data = fastlz_decompress($bytes);
+        }
 
-    $retval = NULL;
-    if ($sertype == COUCHBASE_VAL_IS_STRING) {
-        $retval = $data;
-    } else if ($sertype == COUCHBASE_VAL_IS_LONG) {
-        $retval = intval($data);
-    } else if ($sertype == COUCHBASE_VAL_IS_DOUBLE) {
-        $retval = floatval($data);
-    } else if ($sertype == COUCHBASE_VAL_IS_BOOL) {
-        $retval = boolval($data);
-    } else if ($sertype == COUCHBASE_VAL_IS_JSON) {
-        $retval = json_decode($data);
-    } else if ($sertype == COUCHBASE_VAL_IS_IGBINARY) {
-        $retval = igbinary_unserialize($data);
-    } else if ($sertype == COUCHBASE_VAL_IS_SERIALIZED) {
-        $retval = unserialize($data);
+        $retval = NULL;
+        if ($sertype == COUCHBASE_VAL_IS_STRING) {
+            $retval = $data;
+        } else if ($sertype == COUCHBASE_VAL_IS_LONG) {
+            $retval = intval($data);
+        } else if ($sertype == COUCHBASE_VAL_IS_DOUBLE) {
+            $retval = floatval($data);
+        } else if ($sertype == COUCHBASE_VAL_IS_BOOL) {
+            $retval = boolval($data);
+        } else if ($sertype == COUCHBASE_VAL_IS_JSON) {
+            $retval = json_decode($data);
+        } else if ($sertype == COUCHBASE_VAL_IS_IGBINARY) {
+            $retval = igbinary_unserialize($data);
+        } else if ($sertype == COUCHBASE_VAL_IS_SERIALIZED) {
+            $retval = unserialize($data);
+        }
     }
 
     return $retval;

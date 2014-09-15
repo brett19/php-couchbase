@@ -17,9 +17,16 @@
 /** @internal */ define('COUCHBASE_COMPRESSION_ZLIB', 1 << 5);
 /** @internal */ define('COUCHBASE_COMPRESSION_FASTLZ', 2 << 5);
 /** @internal */ define('COUCHBASE_COMPRESSION_MCISCOMPRESSED', 1 << 4);
+
 /** @internal */ define('COUCHBASE_SERTYPE_JSON', 0);
 /** @internal */ define('COUCHBASE_SERTYPE_IGBINARY', 1);
 /** @internal */ define('COUCHBASE_SERTYPE_PHP', 2);
 /** @internal */ define('COUCHBASE_CMPRTYPE_NONE', 0);
 /** @internal */ define('COUCHBASE_CMPRTYPE_ZLIB', 1);
 /** @internal */ define('COUCHBASE_CMPRTYPE_FASTLZ', 2);
+
+/** @internal */ define('COUCHBASE_CFFMT_MASK', 0xFF << 24);
+/** @internal */ define('COUCHBASE_CFFMT_PRIVATE', 1);
+/** @internal */ define('COUCHBASE_CFFMT_JSON', 2);
+/** @internal */ define('COUCHBASE_CFFMT_RAW', 3);
+/** @internal */ define('COUCHBASE_CFFMT_STRING', 4);
