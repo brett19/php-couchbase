@@ -1,121 +1,147 @@
 <?xml version="1.0"?>
 <!DOCTYPE package SYSTEM "http://pear.php.net/dtd/package-1.0">
-<package xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" packagerversion="1.4.11" version="2.0" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
-  <name>couchbase</name>
-  <channel>pecl.php.net</channel>
-  <summary>Couchbase Server PHP extension</summary>
-  <description>
-    The PHP client library provides fast access to documents stored in
-    a Couchbase Server.
-  </description>
-  <lead>
-    <name>Brett Lawson</name>
-    <user>brett19</user>
-    <email>brett@couchbase.com</email>
-    <active>yes</active>
-  </lead>
-  <date>2014-08-21</date>
-  <version>
-    <release>2.0.0beta</release>
-    <api>2.0.0beta</api>
-  </version>
-  <stability>
-    <release>beta</release>
-    <api>beta</api>
-  </stability>
-  <license uri="http://www.apache.org/licenses/LICENSE-2.0">Apache V2</license>
-  <notes>
-  This is a minor update to the existing PHP 2.0 developer preview.
-
-  New features in a nutshell:
-  * Cluster constructor now accepts a Couchbase Connection String.
-  * Support for cross-SDK compatible data-type flags.
-  * Client-side support for SSL connections.
-  </notes>
-  <contents>
-    <dir name="/">
-      <file role="src" name="bucket.c"/>
-      <file role="src" name="cluster.c"/>
-      <file role="src" name="couchbase.c"/>
-      <file role="src" name="couchbase.h"/>
-      <file role="src" name="datainfo.h"/>
-      <file role="src" name="exception.c"/>
-      <file role="src" name="exception.c"/>
-      <file role="src" name="paramparser.h"/>
-      <file role="src" name="php_couchbase.h"/>
-      <file role="src" name="phpstubstr.h"/>
-    </dir>
-  </contents>
-  <dependencies>
-    <required>
-      <php>
-        <min>5.3.0</min>
-      </php>
-      <pearinstaller>
-        <min>1.4.8</min>
-      </pearinstaller>
-    </required>
-    <optional>
-      <package>
-        <name>igbinary</name>
-        <channel>pecl.php.net</channel>
-        <providesextension>igbinary</providesextension>
-      </package>
-     </optional>
-  </dependencies>
-  <providesextension>couchbase</providesextension>
-  <extsrcrelease/>
-  <changelog>
-    <release>
-      <date>2014-04-28</date>
-      <version>
-        <release>2.0.0dp1</release>
-        <api>2.0.0dp1</api>
-      </version>
-      <stability>
+<package xmlns="http://pear.php.net/dtd/package-2.0"
+         xmlns:tasks="http://pear.php.net/dtd/tasks-1.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         packagerversion="1.4.11" version="2.0"
+         xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
+    <name>couchbase</name>
+    <channel>pecl.php.net</channel>
+    <summary>Couchbase Server PHP extension</summary>
+    <description>
+        The PHP client library provides fast access to documents stored in
+        a Couchbase Server.
+    </description>
+    <lead>
+        <name>Brett Lawson</name>
+        <user>brett19</user>
+        <email>brett@couchbase.com</email>
+        <active>yes</active>
+    </lead>
+    <date>2014-09-16</date>
+    <version>
+        <release>2.0.0beta2</release>
+        <api>2.0.0beta2</api>
+    </version>
+    <stability>
         <release>beta</release>
         <api>beta</api>
-      </stability>
-      <notes>
-  First developer preview release of 2.0 version of PHP client.
-      </notes>
-    </release>
-    <release>
-      <date>2014-06-24</date>
-      <version>
-        <release>2.0.0dp2</release>
-        <api>2.0.0dp2</api>
-      </version>
-      <stability>
-        <release>beta</release>
-        <api>beta</api>
-      </stability>
-      <notes>
-  This is a minor update to the existing PHP 2.0 developer preview.
+    </stability>
+    <license uri="http://www.apache.org/licenses/LICENSE-2.0">Apache V2
+    </license>
+    <notes>
+        This is a minor update to the existing PHP 2.0 beta.
 
-  New features in a nutshell:
-  * Cluster constructor now accepts a Couchbase Connection String.
-  * Support for cross-SDK compatible data-type flags.
-  * Client-side support for SSL connections.
-      </notes>
-    </release>
-      <release>
-          <date>2014-08-21</date>
-          <version>
-              <release>2.0.0beta</release>
-              <api>2.0.0beta</api>
-          </version>
-          <stability>
-              <release>beta</release>
-              <api>beta</api>
-          </stability>
-          <notes>
-              This is a minor update to the existing PHP 2.0 developer preview 2.
+        Changes:
+        * Added support for cross-sdk data storage/retrieval.
+        * Added method to debug generated view queries.
+        * Fixed numerous minor bugs since beta.
+    </notes>
+    <contents>
+        <dir name="/">
+            <file role="src" name="bucket.c"/>
+            <file role="src" name="cluster.c"/>
+            <file role="src" name="couchbase.c"/>
+            <file role="src" name="couchbase.h"/>
+            <file role="src" name="datainfo.h"/>
+            <file role="src" name="exception.c"/>
+            <file role="src" name="exception.c"/>
+            <file role="src" name="paramparser.h"/>
+            <file role="src" name="php_couchbase.h"/>
+            <file role="src" name="phpstubstr.h"/>
+        </dir>
+    </contents>
+    <dependencies>
+        <required>
+            <php>
+                <min>5.3.0</min>
+            </php>
+            <pearinstaller>
+                <min>1.4.8</min>
+            </pearinstaller>
+        </required>
+        <optional>
+            <package>
+                <name>igbinary</name>
+                <channel>pecl.php.net</channel>
+                <providesextension>igbinary</providesextension>
+            </package>
+        </optional>
+    </dependencies>
+    <providesextension>couchbase</providesextension>
+    <extsrcrelease/>
+    <changelog>
+        <release>
+            <date>2014-04-28</date>
+            <version>
+                <release>2.0.0dp1</release>
+                <api>2.0.0dp1</api>
+            </version>
+            <stability>
+                <release>beta</release>
+                <api>beta</api>
+            </stability>
+            <notes>
+                First developer preview release of 2.0 version of PHP client.
+            </notes>
+        </release>
+        <release>
+            <date>2014-06-24</date>
+            <version>
+                <release>2.0.0dp2</release>
+                <api>2.0.0dp2</api>
+            </version>
+            <stability>
+                <release>beta</release>
+                <api>beta</api>
+            </stability>
+            <notes>
+                This is a minor update to the existing PHP 2.0 developer
+                preview.
 
-              Changes:
-              * Added uncommited by stable management APIs.
-              * Made minor changes to various methods to allow easier use.
-          </notes>
-      </release>
-  </changelog>
+                New features in a nutshell:
+                * Cluster constructor now accepts a Couchbase Connection String.
+                * Support for cross-SDK compatible data-type flags.
+                * Client-side support for SSL connections.
+            </notes>
+        </release>
+        <release>
+            <date>2014-08-21</date>
+            <version>
+                <release>2.0.0beta</release>
+                <api>2.0.0beta</api>
+            </version>
+            <stability>
+                <release>beta</release>
+                <api>beta</api>
+            </stability>
+            <notes>
+                This is a minor update to the existing PHP 2.0 developer preview
+                2.
+
+                Changes:
+                * Added uncommited by stable management APIs.
+                * Made minor changes to various methods to allow easier use.
+            </notes>
+        </release>
+        <release>
+            <date>2014-09-16</date>
+            <version>
+                <release>2.0.0beta2</release>
+                <api>2.0.0beta2</api>
+            </version>
+            <stability>
+                <release>beta</release>
+                <api>beta</api>
+            </stability>
+            <notes>
+                This is a minor update to the existing PHP 2.0 beta.
+
+                Changes:
+                * Added support for cross-sdk data storage/retrieval.
+                * Added method to debug generated view queries.
+                * Fixed numerous minor bugs since beta.
+            </notes>
+        </release>
+    </changelog>
 </package>
