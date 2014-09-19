@@ -1,4 +1,18 @@
 <?php
+/**
+ * Various helpers for dealing with connection strings.
+ *
+ * @author Brett Lawson <brett19@gmail.com>
+ */
+
+/**
+ * Normalizes a connection string object.
+ *
+ * @param $dsnObj A connstr object.
+ * @return array
+ *
+ * @internal
+ */
 function _cbdsn_normalize($dsnObj) {
     $out = array();
 
@@ -46,6 +60,15 @@ function _cbdsn_normalize($dsnObj) {
 
     return $out;
 }
+
+/**
+ * Normalizes a connection string object or string.
+ *
+ * @param $dsn A connection string or connstr object.
+ * @return array|string
+ *
+ * @internal
+ */
 function cbdsn_normalize($dsn) {
     if (is_string($dsn)) {
         return _cbdsn_stringify(
@@ -57,6 +80,14 @@ function cbdsn_normalize($dsn) {
     return _cbdsn_normalize($dsn);
 }
 
+/**
+ * Parses a connection string into a object.
+ *
+ * @param $dsn A connection string.
+ * @return array
+ *
+ * @internal
+ */
 function _cbdsn_parse($dsn) {
     $out = array();
 
@@ -93,10 +124,27 @@ function _cbdsn_parse($dsn) {
 
     return $out;
 }
+
+/**
+ * Parses a connection string and ensures its normalized.
+ *
+ * @param $dsn A connection string.
+ * @return array
+ *
+ * @internal
+ */
 function cbdsn_parse($dsn) {
     return _cbdsn_normalize(_cbdsn_parse($dsn));
 }
 
+/**
+ * Converts a connstr object to a connection string.
+ *
+ * @param $dsnObj
+ * @return string
+ *
+ * @internal
+ */
 function _cbdsn_stringify($dsnObj) {
     $dsn = '';
 
@@ -133,6 +181,15 @@ function _cbdsn_stringify($dsnObj) {
 
     return $dsn;
 }
+
+/**
+ * Ensures a connstr object is normalized then generates a connection string.
+ *
+ * @param $dsnObj
+ * @return string
+ *
+ * @internal
+ */
 function cbdsn_stringify($dsnObj) {
     return _cbdsn_stringify(_cbdsn_normalize($dsnObj));
 }

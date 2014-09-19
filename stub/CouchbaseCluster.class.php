@@ -1,5 +1,11 @@
 <?php
 /**
+ * File for the CouchbaseCluster class.
+ *
+ * @author Brett Lawson <brett19@gmail.com>
+ */
+
+/**
  * Represents a cluster connection.
  *
  * @package Couchbase

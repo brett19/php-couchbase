@@ -1,4 +1,13 @@
 <?php
+/**
+ * Aggregates all the stub files for the PHP SDK.
+ *
+ * @author Brett Lawson <brett19@gmail.com>
+ */
+
+/**
+ * Import everything.
+ */
 require_once('constants.php');
 require_once('connstr.php');
 require_once('default_transcoder.php');

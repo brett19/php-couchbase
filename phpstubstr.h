@@ -1,7 +1,9 @@
 char *PCBC_PHP_CODESTR = \
-"/*\n" \
-" * The following is a list of constants used for flags and datatype\n" \
-" * encoding and decoding by the built in transcoders.\n" \
+"/**\n" \
+" * Various constants used for flags, data-type encoding and decoding, etc...\n" \
+" * throughout this SDK.\n" \
+" *\n" \
+" * @author Brett Lawson <brett19@gmail.com>\n" \
 " */\n" \
 "\n" \
 "/** @internal */ define('COUCHBASE_VAL_MASK', 0x1F);\n" \
@@ -17,12 +19,33 @@ char *PCBC_PHP_CODESTR = \
 "/** @internal */ define('COUCHBASE_COMPRESSION_ZLIB', 1 << 5);\n" \
 "/** @internal */ define('COUCHBASE_COMPRESSION_FASTLZ', 2 << 5);\n" \
 "/** @internal */ define('COUCHBASE_COMPRESSION_MCISCOMPRESSED', 1 << 4);\n" \
+"\n" \
 "/** @internal */ define('COUCHBASE_SERTYPE_JSON', 0);\n" \
 "/** @internal */ define('COUCHBASE_SERTYPE_IGBINARY', 1);\n" \
 "/** @internal */ define('COUCHBASE_SERTYPE_PHP', 2);\n" \
 "/** @internal */ define('COUCHBASE_CMPRTYPE_NONE', 0);\n" \
 "/** @internal */ define('COUCHBASE_CMPRTYPE_ZLIB', 1);\n" \
 "/** @internal */ define('COUCHBASE_CMPRTYPE_FASTLZ', 2);\n" \
+"\n" \
+"/** @internal */ define('COUCHBASE_CFFMT_MASK', 0xFF << 24);\n" \
+"/** @internal */ define('COUCHBASE_CFFMT_PRIVATE', 1);\n" \
+"/** @internal */ define('COUCHBASE_CFFMT_JSON', 2);\n" \
+"/** @internal */ define('COUCHBASE_CFFMT_RAW', 3);\n" \
+"/** @internal */ define('COUCHBASE_CFFMT_STRING', 4);\n" \
+"/**\n" \
+" * Various helpers for dealing with connection strings.\n" \
+" *\n" \
+" * @author Brett Lawson <brett19@gmail.com>\n" \
+" */\n" \
+"\n" \
+"/**\n" \
+" * Normalizes a connection string object.\n" \
+" *\n" \
+" * @param $dsnObj A connstr object.\n" \
+" * @return array\n" \
+" *\n" \
+" * @internal\n" \
+" */\n" \
 "function _cbdsn_normalize($dsnObj) {\n" \
 "    $out = array();\n" \
 "\n" \
@@ -70,6 +93,15 @@ char *PCBC_PHP_CODESTR = \
 "\n" \
 "    return $out;\n" \
 "}\n" \
+"\n" \
+"/**\n" \
+" * Normalizes a connection string object or string.\n" \
+" *\n" \
+" * @param $dsn A connection string or connstr object.\n" \
+" * @return array|string\n" \
+" *\n" \
+" * @internal\n" \
+" */\n" \
 "function cbdsn_normalize($dsn) {\n" \
 "    if (is_string($dsn)) {\n" \
 "        return _cbdsn_stringify(\n" \
@@ -81,6 +113,14 @@ char *PCBC_PHP_CODESTR = \
 "    return _cbdsn_normalize($dsn);\n" \
 "}\n" \
 "\n" \
+"/**\n" \
+" * Parses a connection string into a object.\n" \
+" *\n" \
+" * @param $dsn A connection string.\n" \
+" * @return array\n" \
+" *\n" \
+" * @internal\n" \
+" */\n" \
 "function _cbdsn_parse($dsn) {\n" \
 "    $out = array();\n" \
 "\n" \
@@ -117,10 +157,27 @@ char *PCBC_PHP_CODESTR = \
 "\n" \
 "    return $out;\n" \
 "}\n" \
+"\n" \
+"/**\n" \
+" * Parses a connection string and ensures its normalized.\n" \
+" *\n" \
+" * @param $dsn A connection string.\n" \
+" * @return array\n" \
+" *\n" \
+" * @internal\n" \
+" */\n" \
 "function cbdsn_parse($dsn) {\n" \
 "    return _cbdsn_normalize(_cbdsn_parse($dsn));\n" \
 "}\n" \
 "\n" \
+"/**\n" \
+" * Converts a connstr object to a connection string.\n" \
+" *\n" \
+" * @param $dsnObj\n" \
+" * @return string\n" \
+" *\n" \
+" * @internal\n" \
+" */\n" \
 "function _cbdsn_stringify($dsnObj) {\n" \
 "    $dsn = '';\n" \
 "\n" \
@@ -157,15 +214,42 @@ char *PCBC_PHP_CODESTR = \
 "\n" \
 "    return $dsn;\n" \
 "}\n" \
+"\n" \
+"/**\n" \
+" * Ensures a connstr object is normalized then generates a connection string.\n" \
+" *\n" \
+" * @param $dsnObj\n" \
+" * @return string\n" \
+" *\n" \
+" * @internal\n" \
+" */\n" \
 "function cbdsn_stringify($dsnObj) {\n" \
 "    return _cbdsn_stringify(_cbdsn_normalize($dsnObj));\n" \
 "}\n" \
+"/**\n" \
+" * Various transcoder functions that are packaged by default with the\n" \
+" * PHP SDK.\n" \
+" *\n" \
+" * @author Brett Lawson <brett19@gmail.com>\n" \
+" */\n" \
+"\n" \
 "/**\n" \
 " * The default options for V1 encoding when using the default\n" \
 " * transcoding functionality.\n" \
 " * @internal\n" \
 " */\n" \
 "$COUCHBASE_DEFAULT_ENCOPTS = array(\n" \
+"    'sertype' => COUCHBASE_SERTYPE_JSON,\n" \
+"    'cmprtype' => COUCHBASE_CMPRTYPE_NONE,\n" \
+"    'cmprthresh' => 0,\n" \
+"    'cmprfactor' => 0\n" \
+");\n" \
+"\n" \
+"/**\n" \
+" * The default options from past versions of the PHP SDK.\n" \
+" * @internal\n" \
+" */\n" \
+"$COUCHBASE_OLD_ENCOPTS = array(\n" \
 "    'sertype' => COUCHBASE_SERTYPE_PHP,\n" \
 "    'cmprtype' => COUCHBASE_CMPRTYPE_NONE,\n" \
 "    'cmprthresh' => 2000,\n" \
@@ -194,30 +278,30 @@ char *PCBC_PHP_CODESTR = \
 "\n" \
 "    $vtype = gettype($value);\n" \
 "    if ($vtype == 'string') {\n" \
-"        $flags = COUCHBASE_VAL_IS_STRING;\n" \
+"        $flags = COUCHBASE_VAL_IS_STRING | COUCHBASE_CFFMT_STRING;\n" \
 "        $data = $value;\n" \
 "    } else if ($vtype == 'integer') {\n" \
-"        $flags = COUCHBASE_VAL_IS_LONG;\n" \
+"        $flags = COUCHBASE_VAL_IS_LONG | COUCHBASE_CFFMT_JSON;\n" \
 "        $data = (string)$value;\n" \
 "        $cmprtype = COUCHBASE_CMPRTYPE_NONE;\n" \
 "    } else if ($vtype == 'double') {\n" \
-"        $flags = COUCHBASE_VAL_IS_DOUBLE;\n" \
+"        $flags = COUCHBASE_VAL_IS_DOUBLE | COUCHBASE_CFFMT_JSON;\n" \
 "        $data = (string)$value;\n" \
 "        $cmprtype = COUCHBASE_CMPRTYPE_NONE;\n" \
 "    } else if ($vtype == 'boolean') {\n" \
-"        $flags = COUCHBASE_VAL_IS_BOOL;\n" \
-"        $data = (string)$value;\n" \
+"        $flags = COUCHBASE_VAL_IS_BOOL | COUCHBASE_CFFMT_JSON;\n" \
+"        $data = $value ? 'true' : 'false';\n" \
 "        $cmprtype = COUCHBASE_CMPRTYPE_NONE;\n" \
 "    } else {\n" \
 "        if ($sertype == COUCHBASE_SERTYPE_JSON) {\n" \
-"            $flags = COUCHBASE_VAL_IS_JSON;\n" \
+"            $flags = COUCHBASE_VAL_IS_JSON | COUCHBASE_CFFMT_JSON;\n" \
 "            $datatype = COUCHBASE_VALUE_F_JSON;\n" \
 "            $data = json_encode($value);\n" \
 "        } else if ($sertype == COUCHBASE_SERTYPE_IGBINARY) {\n" \
-"            $flags = COUCHBASE_VAL_IS_IGBINARY;\n" \
+"            $flags = COUCHBASE_VAL_IS_IGBINARY | COUCHBASE_CFFMT_PRIVATE;\n" \
 "            $data = igbinary_serialize($value);\n" \
 "        } else if ($sertype == COUCHBASE_SERTYPE_PHP) {\n" \
-"            $flags = COUCHBASE_VAL_IS_SERIALIZED;\n" \
+"            $flags = COUCHBASE_VAL_IS_SERIALIZED | COUCHBASE_CFFMT_PRIVATE;\n" \
 "            $data = serialize($value);\n" \
 "        }\n" \
 "    }\n" \
@@ -243,6 +327,9 @@ char *PCBC_PHP_CODESTR = \
 "                $data = $cmprdata;\n" \
 "                $flags |= $cmprflags;\n" \
 "                $flags |= COUCHBASE_COMPRESSION_MCISCOMPRESSED;\n" \
+"\n" \
+"                $flags &= ~COUCHBASE_CFFMT_MASK;\n" \
+"                $flags |= COUCHBASE_CFFMT_PRIVATE;\n" \
 "            }\n" \
 "        }\n" \
 "    }\n" \
@@ -260,33 +347,48 @@ char *PCBC_PHP_CODESTR = \
 " * @param $flags The flags received from the server\n" \
 " * @param $datatype The datatype received from the server\n" \
 " * @return mixed The resulting decoded value\n" \
+" *\n" \
+" * @throws CouchbaseException\n" \
 " */\n" \
 "function couchbase_basic_decoder_v1($bytes, $flags, $datatype) {\n" \
+"    $cffmt = $flags & COUCHBASE_CFFMT_MASK;\n" \
 "    $sertype = $flags & COUCHBASE_VAL_MASK;\n" \
 "    $cmprtype = $flags & COUCHBASE_COMPRESSION_MASK;\n" \
 "\n" \
 "    $data = $bytes;\n" \
-"    if ($cmprtype == COUCHBASE_COMPRESSION_ZLIB) {\n" \
-"        $bytes = gzdecode($bytes);\n" \
-"    } else if ($cmprtype == COUCHBASE_COMPRESSION_FASTLZ) {\n" \
-"        $data = fastlz_decompress($bytes);\n" \
-"    }\n" \
+"    if ($cffmt != 0 && $cffmt != COUCHBASE_CFFMT_PRIVATE) {\n" \
+"        if ($cffmt == COUCHBASE_CFFMT_JSON) {\n" \
+"            $retval = json_decode($data);\n" \
+"        } else if ($cffmt == COUCHBASE_CFFMT_RAW) {\n" \
+"            $retval = $data;\n" \
+"        } else if ($cffmt == COUCHBASE_CFFMT_STRING) {\n" \
+"            $retval = (string)$data;\n" \
+"        } else {\n" \
+"            throw new CouchbaseException(\"Unknown flags value -- cannot decode value\");\n" \
+"        }\n" \
+"    } else {\n" \
+"        if ($cmprtype == COUCHBASE_COMPRESSION_ZLIB) {\n" \
+"            $bytes = gzdecode($bytes);\n" \
+"        } else if ($cmprtype == COUCHBASE_COMPRESSION_FASTLZ) {\n" \
+"            $data = fastlz_decompress($bytes);\n" \
+"        }\n" \
 "\n" \
-"    $retval = NULL;\n" \
-"    if ($sertype == COUCHBASE_VAL_IS_STRING) {\n" \
-"        $retval = $data;\n" \
-"    } else if ($sertype == COUCHBASE_VAL_IS_LONG) {\n" \
-"        $retval = intval($data);\n" \
-"    } else if ($sertype == COUCHBASE_VAL_IS_DOUBLE) {\n" \
-"        $retval = floatval($data);\n" \
-"    } else if ($sertype == COUCHBASE_VAL_IS_BOOL) {\n" \
-"        $retval = boolval($data);\n" \
-"    } else if ($sertype == COUCHBASE_VAL_IS_JSON) {\n" \
-"        $retval = json_decode($data);\n" \
-"    } else if ($sertype == COUCHBASE_VAL_IS_IGBINARY) {\n" \
-"        $retval = igbinary_unserialize($data);\n" \
-"    } else if ($sertype == COUCHBASE_VAL_IS_SERIALIZED) {\n" \
-"        $retval = unserialize($data);\n" \
+"        $retval = NULL;\n" \
+"        if ($sertype == COUCHBASE_VAL_IS_STRING) {\n" \
+"            $retval = $data;\n" \
+"        } else if ($sertype == COUCHBASE_VAL_IS_LONG) {\n" \
+"            $retval = intval($data);\n" \
+"        } else if ($sertype == COUCHBASE_VAL_IS_DOUBLE) {\n" \
+"            $retval = floatval($data);\n" \
+"        } else if ($sertype == COUCHBASE_VAL_IS_BOOL) {\n" \
+"            $retval = boolval($data);\n" \
+"        } else if ($sertype == COUCHBASE_VAL_IS_JSON) {\n" \
+"            $retval = json_decode($data);\n" \
+"        } else if ($sertype == COUCHBASE_VAL_IS_IGBINARY) {\n" \
+"            $retval = igbinary_unserialize($data);\n" \
+"        } else if ($sertype == COUCHBASE_VAL_IS_SERIALIZED) {\n" \
+"            $retval = unserialize($data);\n" \
+"        }\n" \
 "    }\n" \
 "\n" \
 "    return $retval;\n" \
@@ -332,9 +434,32 @@ char *PCBC_PHP_CODESTR = \
 "function couchbase_default_decoder($bytes, $flags, $datatype) {\n" \
 "    return couchbase_basic_decoder_v1($bytes, $flags, $datatype);\n" \
 "}\n" \
+"/**\n" \
+" * File for the CouchbaseViewQuery class.\n" \
+" */\n" \
+"\n" \
+"/**\n" \
+" * Represents a view query to be executed against a Couchbase bucket.\n" \
+" *\n" \
+" * @package Couchbase\n" \
+" */\n" \
 "class CouchbaseViewQuery {\n" \
+"    /**\n" \
+"     * @var string\n" \
+"     * @internal\n" \
+"     */\n" \
 "    public $ddoc = '';\n" \
+"\n" \
+"    /**\n" \
+"     * @var string\n" \
+"     * @internal\n" \
+"     */\n" \
 "    public $name = '';\n" \
+"\n" \
+"    /**\n" \
+"     * @var array\n" \
+"     * @internal\n" \
+"     */\n" \
 "    public $options = array();\n" \
 "\n" \
 "    const UPDATE_BEFORE = 1;\n" \
@@ -344,9 +469,19 @@ char *PCBC_PHP_CODESTR = \
 "    const ORDER_ASCENDING = 1;\n" \
 "    const ORDER_DESCENDING = 2;\n" \
 "\n" \
+"    /**\n" \
+"     * @internal\n" \
+"     */\n" \
 "    private function __construct() {\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Creates a new Couchbase ViewQuery instance for performing a view query.\n" \
+"     *\n" \
+"     * @param $ddoc The name of the design document to query.\n" \
+"     * @param $name The name of the view to query.\n" \
+"     * @return _CouchbaseDefaultViewQuery\n" \
+"     */\n" \
 "    static public function from($ddoc, $name) {\n" \
 "        $res = new _CouchbaseDefaultViewQuery();\n" \
 "        $res->ddoc = $ddoc;\n" \
@@ -354,6 +489,13 @@ char *PCBC_PHP_CODESTR = \
 "        return $res;\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Creates a new Couchbase ViewQuery instance for performing a spatial query.\n" \
+"     *\n" \
+"     * @param $ddoc The name of the design document to query.\n" \
+"     * @param $name The name of the view to query.\n" \
+"     * @return _CouchbaseSpatialViewQuery\n" \
+"     */\n" \
 "    static public function fromSpatial($ddoc, $name) {\n" \
 "        $res = new _CouchbaseSpatialViewQuery();\n" \
 "        $res->ddoc = $ddoc;\n" \
@@ -361,6 +503,14 @@ char *PCBC_PHP_CODESTR = \
 "        return $res;\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Specifies the mode of updating to perform before and after executing\n" \
+"     * this query.\n" \
+"     *\n" \
+"     * @param $stale\n" \
+"     * @return $this\n" \
+"     * @throws CouchbaseException\n" \
+"     */\n" \
 "    public function stale($stale) {\n" \
 "        if ($stale == self::UPDATE_BEFORE) {\n" \
 "            $this->options['stale'] = 'false';\n" \
@@ -374,28 +524,81 @@ char *PCBC_PHP_CODESTR = \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Skips a number of records from the beginning of the result set.\n" \
+"     *\n" \
+"     * @param $skip\n" \
+"     * @return $this\n" \
+"     */\n" \
 "    public function skip($skip) {\n" \
 "        $this->options['skip'] = '' . $skip;\n" \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Limits the result set to a restricted number of results.\n" \
+"     *\n" \
+"     * @param $limit\n" \
+"     * @return $this\n" \
+"     */\n" \
 "    public function limit($limit) {\n" \
 "        $this->options['limit'] = '' . $limit;\n" \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Specifies custom options to pass to the server.  Note that these\n" \
+"     * options are expected to be already encoded.\n" \
+"     *\n" \
+"     * @param $opts\n" \
+"     * @return $this\n" \
+"     */\n" \
 "    public function custom($opts) {\n" \
 "        foreach ($opts as $k => $v) {\n" \
 "            $this->options[$k] = $v;\n" \
 "        }\n" \
 "        return $this;\n" \
 "    }\n" \
+"\n" \
+"    /**\n" \
+"     * Generates the view query as it will be passed to the server.\n" \
+"     *\n" \
+"     * @return string\n" \
+"     * @internal\n" \
+"     */\n" \
+"    public function _toString($type) {\n" \
+"        $path = '/_design/' . $this->ddoc . '/' . $type . '/' . $this->view;\n" \
+"        $args = array();\n" \
+"        foreach ($this->options as $option => $value) {\n" \
+"            array_push($args, $option . '=' . $value);\n" \
+"        }\n" \
+"        $path .= '?' . implode('&', $args);\n" \
+"        return $path;\n" \
+"    }\n" \
 "};\n" \
 "\n" \
+"/**\n" \
+" * Represents a regular view query to perform against the server.  Note that\n" \
+" * this object should never be instantiated directly, but instead through\n" \
+" * the CouchbaseViewQuery::from method.\n" \
+" *\n" \
+" * @package Couchbase\n" \
+" */\n" \
 "class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {\n" \
+"\n" \
+"    /**\n" \
+"     * @internal\n" \
+"     */\n" \
 "    public function __construct() {\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Orders the results by key as specified.\n" \
+"     *\n" \
+"     * @param $order\n" \
+"     * @return $this\n" \
+"     * @throws CouchbaseException\n" \
+"     */\n" \
 "    public function order($order) {\n" \
 "        if ($order == self::ORDER_ASCENDING) {\n" \
 "            $this->options['descending'] = 'false';\n" \
@@ -407,6 +610,12 @@ char *PCBC_PHP_CODESTR = \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Specifies a reduction function to apply to the index.\n" \
+"     *\n" \
+"     * @param $reduce\n" \
+"     * @return $this\n" \
+"     */\n" \
 "    public function reduce($reduce) {\n" \
 "        if ($reduce) {\n" \
 "            $this->options['reduce'] = 'true';\n" \
@@ -416,6 +625,12 @@ char *PCBC_PHP_CODESTR = \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Specifies the level of grouping to use on the results.\n" \
+"     *\n" \
+"     * @param $group_level\n" \
+"     * @return $this\n" \
+"     */\n" \
 "    public function group($group_level) {\n" \
 "        if ($group_level >= 0) {\n" \
 "            $this->options['group'] = 'false';\n" \
@@ -427,17 +642,37 @@ char *PCBC_PHP_CODESTR = \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Specifies a specific key to return from the index.\n" \
+"     *\n" \
+"     * @param $key\n" \
+"     * @return $this\n" \
+"     */\n" \
 "    public function key($key) {\n" \
 "        $this->options['key'] = $key;\n" \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Specifies a list of keys to return from the index.\n" \
+"     *\n" \
+"     * @param $keys\n" \
+"     * @return $this\n" \
+"     */\n" \
 "    public function keys($keys) {\n" \
 "        $this->options['keys'] =\n" \
 "            str_replace('\\\\\\\\', '\\\\', json_encode($keys));\n" \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Specifies a range of keys to return from the index.\n" \
+"     *\n" \
+"     * @param mixed $start\n" \
+"     * @param mixed $end\n" \
+"     * @param bool $inclusive_end\n" \
+"     * @return $this\n" \
+"     */\n" \
 "    public function range($start = NULL, $end = NULL, $inclusive_end = false) {\n" \
 "        if ($start !== NULL) {\n" \
 "            $this->options['startkey'] =\n" \
@@ -455,6 +690,13 @@ char *PCBC_PHP_CODESTR = \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Specifies a range of document ids to return from the index.\n" \
+"     *\n" \
+"     * @param null $start\n" \
+"     * @param null $end\n" \
+"     * @return $this\n" \
+"     */\n" \
 "    public function id_range($start = NULL, $end = NULL) {\n" \
 "        if ($start !== NULL) {\n" \
 "            $this->options['startkey_docid'] =\n" \
@@ -470,17 +712,58 @@ char *PCBC_PHP_CODESTR = \
 "        }\n" \
 "        return $this;\n" \
 "    }\n" \
+"\n" \
+"    /**\n" \
+"     * Generates the view query as it will be passed to the server.\n" \
+"     *\n" \
+"     * @return string\n" \
+"     */\n" \
+"    public function toString() {\n" \
+"        return $this->_toString('_view');\n" \
+"    }\n" \
 "};\n" \
 "\n" \
+"/**\n" \
+" * Represents a spatial view query to perform against the server.  Note that\n" \
+" * this object should never be instantiated directly, but instead through\n" \
+" * the CouchbaseViewQuery::fromSpatial method.\n" \
+" *\n" \
+" * @package Couchbase\n" \
+" */\n" \
 "class _CouchbaseSpatialViewQuery extends CouchbaseViewQuery {\n" \
+"\n" \
+"    /**\n" \
+"     * @internal\n" \
+"     */\n" \
 "    public function __construct() {\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Specifies the bounding box to search within.\n" \
+"     *\n" \
+"     * @param number[] $bbox\n" \
+"     * @return $this\n" \
+"     */\n" \
 "    public function bbox($bbox) {\n" \
 "        $this->options['bbox'] = implode(',', $bbox);\n" \
 "        return $this;\n" \
 "    }\n" \
+"\n" \
+"    /**\n" \
+"     * Generates the view query as it will be passed to the server.\n" \
+"     *\n" \
+"     * @return string\n" \
+"     */\n" \
+"    public function toString() {\n" \
+"        return $this->_toString('_spatial');\n" \
+"    }\n" \
 "};\n" \
+"/**\n" \
+" * File for the CouchbaseCluster class.\n" \
+" *\n" \
+" * @author Brett Lawson <brett19@gmail.com>\n" \
+" */\n" \
+"\n" \
 "/**\n" \
 " * Represents a cluster connection.\n" \
 " *\n" \
@@ -553,6 +836,18 @@ char *PCBC_PHP_CODESTR = \
 "    }\n" \
 "\n" \
 "}\n" \
+"/**\n" \
+" * File for the CouchbaseClusterManager class.\n" \
+" *\n" \
+" * @author Brett Lawson <brett19@gmail.com>\n" \
+" */\n" \
+"\n" \
+"/**\n" \
+" * Class exposing the various available management operations that can be\n" \
+" * performed on a cluster.\n" \
+" *\n" \
+" * @package Couchbase\n" \
+" */\n" \
 "class CouchbaseClusterManager {\n" \
 "    /**\n" \
 "     * @var _CouchbaseCluster\n" \
@@ -647,6 +942,12 @@ char *PCBC_PHP_CODESTR = \
 "        return json_decode($res, true);\n" \
 "    }\n" \
 "} \n" \
+"/**\n" \
+" * File for the CouchbaseBucket class.\n" \
+" *\n" \
+" * @author Brett Lawson <brett19@gmail.com>\n" \
+" */\n" \
+"\n" \
 "/**\n" \
 " * Represents a bucket connection.\n" \
 " *\n" \
@@ -754,7 +1055,7 @@ char *PCBC_PHP_CODESTR = \
 "     *\n" \
 "     * @param string|array $ids\n" \
 "     * @param mixed $val\n" \
-"     * @param array $options expiry,flags,groupid\n" \
+"     * @param array $options expiry,flags\n" \
 "     * @return mixed\n" \
 "     */\n" \
 "    public function insert($ids, $val = NULL, $options = array()) {\n" \
@@ -768,7 +1069,7 @@ char *PCBC_PHP_CODESTR = \
 "     *\n" \
 "     * @param string|array $ids\n" \
 "     * @param mixed $val\n" \
-"     * @param array $options expiry,flags,groupid\n" \
+"     * @param array $options expiry,flags\n" \
 "     * @return mixed\n" \
 "     */\n" \
 "    public function upsert($ids, $val = NULL, $options = array()) {\n" \
@@ -777,23 +1078,23 @@ char *PCBC_PHP_CODESTR = \
 "    }\n" \
 "\n" \
 "    /**\n" \
-"     * Saves a document.\n" \
+"     * Replaces a document.\n" \
 "     *\n" \
 "     * @param string|array $ids\n" \
 "     * @param mixed $val\n" \
-"     * @param array $options cas,expiry,flags,groupid\n" \
+"     * @param array $options cas,expiry,flags\n" \
 "     * @return mixed\n" \
 "     */\n" \
-"    public function save($ids, $val = NULL, $options = array()) {\n" \
+"    public function replace($ids, $val = NULL, $options = array()) {\n" \
 "        return $this->_endure($ids, $options,\n" \
-"            $this->me->save($ids, $val, $options));\n" \
+"            $this->me->replace($ids, $val, $options));\n" \
 "    }\n" \
 "\n" \
 "    /**\n" \
 "     * Deletes a document.\n" \
 "     *\n" \
 "     * @param string|array $ids\n" \
-"     * @param array $options cas,groupid\n" \
+"     * @param array $options cas\n" \
 "     * @return mixed\n" \
 "     */\n" \
 "    public function remove($ids, $options = array()) {\n" \
@@ -805,7 +1106,7 @@ char *PCBC_PHP_CODESTR = \
 "     * Retrieves a document.\n" \
 "     *\n" \
 "     * @param string|array $ids\n" \
-"     * @param array $options lock,groupid\n" \
+"     * @param array $options lock\n" \
 "     * @return mixed\n" \
 "     */\n" \
 "    public function get($ids, $options = array()) {\n" \
@@ -837,11 +1138,22 @@ char *PCBC_PHP_CODESTR = \
 "    }\n" \
 "\n" \
 "    /**\n" \
+"     * Retrieves a document from a replica.\n" \
+"     *\n" \
+"     * @param string $id\n" \
+"     * @param array $options\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function getFromReplica($id, $options = array()) {\n" \
+"        return $this->me->getFromReplica($id, $options);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
 "     * Increment or decrements a key (based on $delta).\n" \
 "     *\n" \
 "     * @param string|array $ids\n" \
 "     * @param integer $delta\n" \
-"     * @param array $options initial,expiry,groupid\n" \
+"     * @param array $options initial,expiry\n" \
 "     * @return mixed\n" \
 "     */\n" \
 "    public function counter($ids, $delta, $options = array()) {\n" \
@@ -852,7 +1164,7 @@ char *PCBC_PHP_CODESTR = \
 "    /**\n" \
 "     * Unlocks a key previous locked with a call to get().\n" \
 "     * @param string|array $ids\n" \
-"     * @param array $options cas,groupid\n" \
+"     * @param array $options cas\n" \
 "     * @return mixed\n" \
 "     */\n" \
 "    public function unlock($ids, $options = array()) {\n" \
@@ -860,31 +1172,33 @@ char *PCBC_PHP_CODESTR = \
 "    }\n" \
 "\n" \
 "    /**\n" \
-"     * Executes a view query\n" \
+"     * Executes a view query.\n" \
 "     *\n" \
-"     * @internal\n" \
-"     *\n" \
-"     * @param string $ddoc\n" \
-"     * @param string $view\n" \
-"     * @param array $options\n" \
+"     * @param ViewQuery $queryObj\n" \
 "     * @return mixed\n" \
 "     * @throws CouchbaseException\n" \
+"     *\n" \
+"     * @internal\n" \
 "     */\n" \
-"    public function _view($type, $ddoc, $view, $options) {\n" \
-"        $path = '/_design/' . $ddoc . '/' . $type . '/' . $view;\n" \
-"        $args = array();\n" \
-"        foreach ($options as $option => $value) {\n" \
-"            array_push($args, $option . '=' . $value);\n" \
-"        }\n" \
-"        $path .= '?' . implode('&', $args);\n" \
+"    public function _view($queryObj) {\n" \
+"        $path = $queryObj->toString();\n" \
 "        $res = $this->me->http_request(1, 1, $path, NULL, 1);\n" \
 "        $out = json_decode($res, true);\n" \
-"        if ($out['error']) {\n" \
+"        if (isset($out['error'])) {\n" \
 "            throw new CouchbaseException($out['error'] . ': ' . $out['reason']);\n" \
 "        }\n" \
 "        return $out;\n" \
 "    }\n" \
 "\n" \
+"    /**\n" \
+"     * Performs a N1QL query.\n" \
+"     *\n" \
+"     * @param $dmlstring\n" \
+"     * @return mixed\n" \
+"     * @throws CouchbaseException\n" \
+"     *\n" \
+"     * @internal\n" \
+"     */\n" \
 "    public function _query($dmlstring) {\n" \
 "        if ($this->queryhosts == NULL) {\n" \
 "            throw new CouchbaseException('no available query nodes');\n" \
@@ -923,10 +1237,9 @@ char *PCBC_PHP_CODESTR = \
 "     * @throws CouchbaseException\n" \
 "     */\n" \
 "    public function query($query) {\n" \
-"        if ($query instanceof _CouchbaseDefaultViewQuery) {\n" \
-"            return $this->_view('_view', $query->ddoc, $query->name, $query->options);\n" \
-"        } else if ($query instanceof _CouchbaseSpatialViewQuery) {\n" \
-"            return $this->_view('_spatial', $query->ddoc, $query->name, $query->options);\n" \
+"        if ($query instanceof _CouchbaseDefaultViewQuery ||\n" \
+"            $query instanceof _CouchbaseSpatialViewQuery) {\n" \
+"            return $this->_view($query);\n" \
 "        } else if ($query instanceof CouchbaseN1qlQuery) {\n" \
 "            return $this->_query($query->querystr);\n" \
 "        } else {\n" \
@@ -1088,6 +1401,17 @@ char *PCBC_PHP_CODESTR = \
 "        return null;\n" \
 "    }\n" \
 "}\n" \
+"/**\n" \
+" * File for the CouchbaseBucketManager class.\n" \
+" * @author Brett Lawson <brett19@gmail.com>\n" \
+" */\n" \
+"\n" \
+"/**\n" \
+" * Class exposing the various available management operations that can be\n" \
+" * performed on a bucket.\n" \
+" *\n" \
+" * @package Couchbase\n" \
+" */\n" \
 "class CouchbaseBucketManager {\n" \
 "    /**\n" \
 "     * @var _CouchbaseBucket\n" \

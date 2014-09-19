@@ -1,5 +1,11 @@
 <?php
 /**
+ * File for the CouchbaseBucket class.
+ *
+ * @author Brett Lawson <brett19@gmail.com>
+ */
+
+/**
  * Represents a bucket connection.
  *
  * Note: This class must be constructed by calling the openBucket
@@ -223,13 +229,13 @@ class CouchbaseBucket {
     }
 
     /**
-     * Executes a view query
-     *
-     * @internal
+     * Executes a view query.
      *
      * @param ViewQuery $queryObj
      * @return mixed
      * @throws CouchbaseException
+     *
+     * @internal
      */
     public function _view($queryObj) {
         $path = $queryObj->toString();
@@ -241,6 +247,15 @@ class CouchbaseBucket {
         return $out;
     }
 
+    /**
+     * Performs a N1QL query.
+     *
+     * @param $dmlstring
+     * @return mixed
+     * @throws CouchbaseException
+     *
+     * @internal
+     */
     public function _query($dmlstring) {
         if ($this->queryhosts == NULL) {
             throw new CouchbaseException('no available query nodes');

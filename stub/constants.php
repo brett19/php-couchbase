@@ -1,7 +1,9 @@
 <?php
-/*
- * The following is a list of constants used for flags and datatype
- * encoding and decoding by the built in transcoders.
+/**
+ * Various constants used for flags, data-type encoding and decoding, etc...
+ * throughout this SDK.
+ *
+ * @author Brett Lawson <brett19@gmail.com>
  */
 
 /** @internal */ define('COUCHBASE_VAL_MASK', 0x1F);

@@ -1,4 +1,15 @@
 <?php
+/**
+ * File for the CouchbaseBucketManager class.
+ * @author Brett Lawson <brett19@gmail.com>
+ */
+
+/**
+ * Class exposing the various available management operations that can be
+ * performed on a bucket.
+ *
+ * @package Couchbase
+ */
 class CouchbaseBucketManager {
     /**
      * @var _CouchbaseBucket

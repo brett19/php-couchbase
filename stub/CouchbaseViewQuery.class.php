@@ -1,7 +1,30 @@
 <?php
+/**
+ * File for the CouchbaseViewQuery class.
+ */
+
+/**
+ * Represents a view query to be executed against a Couchbase bucket.
+ *
+ * @package Couchbase
+ */
 class CouchbaseViewQuery {
+    /**
+     * @var string
+     * @internal
+     */
     public $ddoc = '';
+
+    /**
+     * @var string
+     * @internal
+     */
     public $name = '';
+
+    /**
+     * @var array
+     * @internal
+     */
     public $options = array();
 
     const UPDATE_BEFORE = 1;
@@ -11,9 +34,19 @@ class CouchbaseViewQuery {
     const ORDER_ASCENDING = 1;
     const ORDER_DESCENDING = 2;
 
+    /**
+     * @internal
+     */
     private function __construct() {
     }
 
+    /**
+     * Creates a new Couchbase ViewQuery instance for performing a view query.
+     *
+     * @param $ddoc The name of the design document to query.
+     * @param $name The name of the view to query.
+     * @return _CouchbaseDefaultViewQuery
+     */
     static public function from($ddoc, $name) {
         $res = new _CouchbaseDefaultViewQuery();
         $res->ddoc = $ddoc;
@@ -21,6 +54,13 @@ class CouchbaseViewQuery {
         return $res;
     }
 
+    /**
+     * Creates a new Couchbase ViewQuery instance for performing a spatial query.
+     *
+     * @param $ddoc The name of the design document to query.
+     * @param $name The name of the view to query.
+     * @return _CouchbaseSpatialViewQuery
+     */
     static public function fromSpatial($ddoc, $name) {
         $res = new _CouchbaseSpatialViewQuery();
         $res->ddoc = $ddoc;
@@ -28,6 +68,14 @@ class CouchbaseViewQuery {
         return $res;
     }
 
+    /**
+     * Specifies the mode of updating to perform before and after executing
+     * this query.
+     *
+     * @param $stale
+     * @return $this
+     * @throws CouchbaseException
+     */
     public function stale($stale) {
         if ($stale == self::UPDATE_BEFORE) {
             $this->options['stale'] = 'false';
@@ -41,16 +89,35 @@ class CouchbaseViewQuery {
         return $this;
     }
 
+    /**
+     * Skips a number of records from the beginning of the result set.
+     *
+     * @param $skip
+     * @return $this
+     */
     public function skip($skip) {
         $this->options['skip'] = '' . $skip;
         return $this;
     }
 
+    /**
+     * Limits the result set to a restricted number of results.
+     *
+     * @param $limit
+     * @return $this
+     */
     public function limit($limit) {
         $this->options['limit'] = '' . $limit;
         return $this;
     }
 
+    /**
+     * Specifies custom options to pass to the server.  Note that these
+     * options are expected to be already encoded.
+     *
+     * @param $opts
+     * @return $this
+     */
     public function custom($opts) {
         foreach ($opts as $k => $v) {
             $this->options[$k] = $v;
@@ -58,6 +125,12 @@ class CouchbaseViewQuery {
         return $this;
     }
 
+    /**
+     * Generates the view query as it will be passed to the server.
+     *
+     * @return string
+     * @internal
+     */
     public function _toString($type) {
         $path = '/_design/' . $this->ddoc . '/' . $type . '/' . $this->view;
         $args = array();
@@ -69,10 +142,28 @@ class CouchbaseViewQuery {
     }
 };
 
+/**
+ * Represents a regular view query to perform against the server.  Note that
+ * this object should never be instantiated directly, but instead through
+ * the CouchbaseViewQuery::from method.
+ *
+ * @package Couchbase
+ */
 class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {
+
+    /**
+     * @internal
+     */
     public function __construct() {
     }
 
+    /**
+     * Orders the results by key as specified.
+     *
+     * @param $order
+     * @return $this
+     * @throws CouchbaseException
+     */
     public function order($order) {
         if ($order == self::ORDER_ASCENDING) {
             $this->options['descending'] = 'false';
@@ -84,6 +175,12 @@ class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {
         return $this;
     }
 
+    /**
+     * Specifies a reduction function to apply to the index.
+     *
+     * @param $reduce
+     * @return $this
+     */
     public function reduce($reduce) {
         if ($reduce) {
             $this->options['reduce'] = 'true';
@@ -93,6 +190,12 @@ class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {
         return $this;
     }
 
+    /**
+     * Specifies the level of grouping to use on the results.
+     *
+     * @param $group_level
+     * @return $this
+     */
     public function group($group_level) {
         if ($group_level >= 0) {
             $this->options['group'] = 'false';
@@ -104,17 +207,37 @@ class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {
         return $this;
     }
 
+    /**
+     * Specifies a specific key to return from the index.
+     *
+     * @param $key
+     * @return $this
+     */
     public function key($key) {
         $this->options['key'] = $key;
         return $this;
     }
 
+    /**
+     * Specifies a list of keys to return from the index.
+     *
+     * @param $keys
+     * @return $this
+     */
     public function keys($keys) {
         $this->options['keys'] =
             str_replace('\\\\', '\\', json_encode($keys));
         return $this;
     }
 
+    /**
+     * Specifies a range of keys to return from the index.
+     *
+     * @param mixed $start
+     * @param mixed $end
+     * @param bool $inclusive_end
+     * @return $this
+     */
     public function range($start = NULL, $end = NULL, $inclusive_end = false) {
         if ($start !== NULL) {
             $this->options['startkey'] =
@@ -132,6 +255,13 @@ class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {
         return $this;
     }
 
+    /**
+     * Specifies a range of document ids to return from the index.
+     *
+     * @param null $start
+     * @param null $end
+     * @return $this
+     */
     public function id_range($start = NULL, $end = NULL) {
         if ($start !== NULL) {
             $this->options['startkey_docid'] =
@@ -148,20 +278,47 @@ class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {
         return $this;
     }
 
+    /**
+     * Generates the view query as it will be passed to the server.
+     *
+     * @return string
+     */
     public function toString() {
         return $this->_toString('_view');
     }
 };
 
+/**
+ * Represents a spatial view query to perform against the server.  Note that
+ * this object should never be instantiated directly, but instead through
+ * the CouchbaseViewQuery::fromSpatial method.
+ *
+ * @package Couchbase
+ */
 class _CouchbaseSpatialViewQuery extends CouchbaseViewQuery {
+
+    /**
+     * @internal
+     */
     public function __construct() {
     }
 
+    /**
+     * Specifies the bounding box to search within.
+     *
+     * @param number[] $bbox
+     * @return $this
+     */
     public function bbox($bbox) {
         $this->options['bbox'] = implode(',', $bbox);
         return $this;
     }
 
+    /**
+     * Generates the view query as it will be passed to the server.
+     *
+     * @return string
+     */
     public function toString() {
         return $this->_toString('_spatial');
     }

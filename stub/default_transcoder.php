@@ -1,5 +1,12 @@
 <?php
 /**
+ * Various transcoder functions that are packaged by default with the
+ * PHP SDK.
+ *
+ * @author Brett Lawson <brett19@gmail.com>
+ */
+
+/**
  * The default options for V1 encoding when using the default
  * transcoding functionality.
  * @internal

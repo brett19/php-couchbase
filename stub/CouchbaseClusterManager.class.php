@@ -1,4 +1,16 @@
 <?php
+/**
+ * File for the CouchbaseClusterManager class.
+ *
+ * @author Brett Lawson <brett19@gmail.com>
+ */
+
+/**
+ * Class exposing the various available management operations that can be
+ * performed on a cluster.
+ *
+ * @package Couchbase
+ */
 class CouchbaseClusterManager {
     /**
      * @var _CouchbaseCluster
