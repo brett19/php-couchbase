@@ -18,24 +18,21 @@
         <email>brett@couchbase.com</email>
         <active>yes</active>
     </lead>
-    <date>2014-09-16</date>
+    <date>2014-09-19</date>
     <version>
-        <release>2.0.0beta2</release>
-        <api>2.0.0beta2</api>
+        <release>2.0.0</release>
+        <api>2.0.0</api>
     </version>
     <stability>
-        <release>beta</release>
-        <api>beta</api>
+        <release>stable</release>
+        <api>stable</api>
     </stability>
     <license uri="http://www.apache.org/licenses/LICENSE-2.0">Apache V2
     </license>
     <notes>
-        This is a minor update to the existing PHP 2.0 beta.
+        This is the first GA release of the new 2.0 PHP SDK.
 
-        Changes:
-        * Added support for cross-sdk data storage/retrieval.
-        * Added method to debug generated view queries.
-        * Fixed numerous minor bugs since beta.
+        No changes since release 2.0.0beta2.
     </notes>
     <contents>
         <dir name="/">
@@ -141,6 +138,22 @@
                 * Added support for cross-sdk data storage/retrieval.
                 * Added method to debug generated view queries.
                 * Fixed numerous minor bugs since beta.
+            </notes>
+        </release>
+        <release>
+            <date>2014-09-19</date>
+            <version>
+                <release>2.0.0</release>
+                <api>2.0.0</api>
+            </version>
+            <stability>
+                <release>stable</release>
+                <api>stable</api>
+            </stability>
+            <notes>
+                This is the first GA release of the new 2.0 PHP SDK.
+
+                No changes since release 2.0.0beta2.
             </notes>
         </release>
     </changelog>
