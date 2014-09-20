@@ -295,7 +295,6 @@ char *PCBC_PHP_CODESTR = \
 "    } else {\n" \
 "        if ($sertype == COUCHBASE_SERTYPE_JSON) {\n" \
 "            $flags = COUCHBASE_VAL_IS_JSON | COUCHBASE_CFFMT_JSON;\n" \
-"            $datatype = COUCHBASE_VALUE_F_JSON;\n" \
 "            $data = json_encode($value);\n" \
 "        } else if ($sertype == COUCHBASE_SERTYPE_IGBINARY) {\n" \
 "            $flags = COUCHBASE_VAL_IS_IGBINARY | COUCHBASE_CFFMT_PRIVATE;\n" \
