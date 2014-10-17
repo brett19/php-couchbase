@@ -566,7 +566,7 @@ char *PCBC_PHP_CODESTR = \
 "     * @internal\n" \
 "     */\n" \
 "    public function _toString($type) {\n" \
-"        $path = '/_design/' . $this->ddoc . '/' . $type . '/' . $this->view;\n" \
+"        $path = '/_design/' . $this->ddoc . '/' . $type . '/' . $this->name;\n" \
 "        $args = array();\n" \
 "        foreach ($this->options as $option => $value) {\n" \
 "            array_push($args, $option . '=' . $value);\n" \

@@ -132,7 +132,7 @@ class CouchbaseViewQuery {
      * @internal
      */
     public function _toString($type) {
-        $path = '/_design/' . $this->ddoc . '/' . $type . '/' . $this->view;
+        $path = '/_design/' . $this->ddoc . '/' . $type . '/' . $this->name;
         $args = array();
         foreach ($this->options as $option => $value) {
             array_push($args, $option . '=' . $value);
