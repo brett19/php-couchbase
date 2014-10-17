@@ -28,7 +28,7 @@
 /** @internal */ define('COUCHBASE_CMPRTYPE_FASTLZ', 2);
 
 /** @internal */ define('COUCHBASE_CFFMT_MASK', 0xFF << 24);
-/** @internal */ define('COUCHBASE_CFFMT_PRIVATE', 1);
-/** @internal */ define('COUCHBASE_CFFMT_JSON', 2);
-/** @internal */ define('COUCHBASE_CFFMT_RAW', 3);
-/** @internal */ define('COUCHBASE_CFFMT_STRING', 4);
+/** @internal */ define('COUCHBASE_CFFMT_PRIVATE', 1 << 24);
+/** @internal */ define('COUCHBASE_CFFMT_JSON', 2 << 24);
+/** @internal */ define('COUCHBASE_CFFMT_RAW', 3 << 24);
+/** @internal */ define('COUCHBASE_CFFMT_STRING', 4 << 24);

@@ -28,10 +28,10 @@ char *PCBC_PHP_CODESTR = \
 "/** @internal */ define('COUCHBASE_CMPRTYPE_FASTLZ', 2);\n" \
 "\n" \
 "/** @internal */ define('COUCHBASE_CFFMT_MASK', 0xFF << 24);\n" \
-"/** @internal */ define('COUCHBASE_CFFMT_PRIVATE', 1);\n" \
-"/** @internal */ define('COUCHBASE_CFFMT_JSON', 2);\n" \
-"/** @internal */ define('COUCHBASE_CFFMT_RAW', 3);\n" \
-"/** @internal */ define('COUCHBASE_CFFMT_STRING', 4);\n" \
+"/** @internal */ define('COUCHBASE_CFFMT_PRIVATE', 1 << 24);\n" \
+"/** @internal */ define('COUCHBASE_CFFMT_JSON', 2 << 24);\n" \
+"/** @internal */ define('COUCHBASE_CFFMT_RAW', 3 << 24);\n" \
+"/** @internal */ define('COUCHBASE_CFFMT_STRING', 4 << 24);\n" \
 "/**\n" \
 " * Various helpers for dealing with connection strings.\n" \
 " *\n" \
