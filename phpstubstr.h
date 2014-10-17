@@ -257,6 +257,15 @@ char *PCBC_PHP_CODESTR = \
 ");\n" \
 "\n" \
 "/**\n" \
+" * The default options for V1 decoding when using the default\n" \
+" * transcoding functionality.\n" \
+" * @internal\n" \
+" */\n" \
+"$COUCHBASE_DEFAULT_DECOPTS = array(\n" \
+"    'jsonassoc' => false\n" \
+");\n" \
+"\n" \
+"/**\n" \
 " * Performs encoding of user provided types into binary form for\n" \
 " * on the server according to the original PHP SDK specification.\n" \
 " *\n" \
@@ -349,7 +358,7 @@ char *PCBC_PHP_CODESTR = \
 " *\n" \
 " * @throws CouchbaseException\n" \
 " */\n" \
-"function couchbase_basic_decoder_v1($bytes, $flags, $datatype) {\n" \
+"function couchbase_basic_decoder_v1($bytes, $flags, $datatype, $options) {\n" \
 "    $cffmt = $flags & COUCHBASE_CFFMT_MASK;\n" \
 "    $sertype = $flags & COUCHBASE_VAL_MASK;\n" \
 "    $cmprtype = $flags & COUCHBASE_COMPRESSION_MASK;\n" \
@@ -357,7 +366,7 @@ char *PCBC_PHP_CODESTR = \
 "    $data = $bytes;\n" \
 "    if ($cffmt != 0 && $cffmt != COUCHBASE_CFFMT_PRIVATE) {\n" \
 "        if ($cffmt == COUCHBASE_CFFMT_JSON) {\n" \
-"            $retval = json_decode($data);\n" \
+"            $retval = json_decode($data, $options['jsonassoc']);\n" \
 "        } else if ($cffmt == COUCHBASE_CFFMT_RAW) {\n" \
 "            $retval = $data;\n" \
 "        } else if ($cffmt == COUCHBASE_CFFMT_STRING) {\n" \
@@ -382,7 +391,7 @@ char *PCBC_PHP_CODESTR = \
 "        } else if ($sertype == COUCHBASE_VAL_IS_BOOL) {\n" \
 "            $retval = boolval($data);\n" \
 "        } else if ($sertype == COUCHBASE_VAL_IS_JSON) {\n" \
-"            $retval = json_decode($data);\n" \
+"            $retval = json_decode($data, $options['jsonassoc']);\n" \
 "        } else if ($sertype == COUCHBASE_VAL_IS_IGBINARY) {\n" \
 "            $retval = igbinary_unserialize($data);\n" \
 "        } else if ($sertype == COUCHBASE_VAL_IS_SERIALIZED) {\n" \
@@ -431,7 +440,8 @@ char *PCBC_PHP_CODESTR = \
 " * @internal\n" \
 " */\n" \
 "function couchbase_default_decoder($bytes, $flags, $datatype) {\n" \
-"    return couchbase_basic_decoder_v1($bytes, $flags, $datatype);\n" \
+"    global $COUCHBASE_DEFAULT_DECOPTS;\n" \
+"    return couchbase_basic_decoder_v1($bytes, $flags, $datatype, $COUCHBASE_DEFAULT_DECOPTS);\n" \
 "}\n" \
 "/**\n" \
 " * File for the CouchbaseViewQuery class.\n" \

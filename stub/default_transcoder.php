@@ -30,6 +30,15 @@ $COUCHBASE_OLD_ENCOPTS = array(
 );
 
 /**
+ * The default options for V1 decoding when using the default
+ * transcoding functionality.
+ * @internal
+ */
+$COUCHBASE_DEFAULT_DECOPTS = array(
+    'jsonassoc' => false
+);
+
+/**
  * Performs encoding of user provided types into binary form for
  * on the server according to the original PHP SDK specification.
  *
@@ -122,7 +131,7 @@ function couchbase_basic_encoder_v1($value, $options) {
  *
  * @throws CouchbaseException
  */
-function couchbase_basic_decoder_v1($bytes, $flags, $datatype) {
+function couchbase_basic_decoder_v1($bytes, $flags, $datatype, $options) {
     $cffmt = $flags & COUCHBASE_CFFMT_MASK;
     $sertype = $flags & COUCHBASE_VAL_MASK;
     $cmprtype = $flags & COUCHBASE_COMPRESSION_MASK;
@@ -130,7 +139,7 @@ function couchbase_basic_decoder_v1($bytes, $flags, $datatype) {
     $data = $bytes;
     if ($cffmt != 0 && $cffmt != COUCHBASE_CFFMT_PRIVATE) {
         if ($cffmt == COUCHBASE_CFFMT_JSON) {
-            $retval = json_decode($data);
+            $retval = json_decode($data, $options['jsonassoc']);
         } else if ($cffmt == COUCHBASE_CFFMT_RAW) {
             $retval = $data;
         } else if ($cffmt == COUCHBASE_CFFMT_STRING) {
@@ -155,7 +164,7 @@ function couchbase_basic_decoder_v1($bytes, $flags, $datatype) {
         } else if ($sertype == COUCHBASE_VAL_IS_BOOL) {
             $retval = boolval($data);
         } else if ($sertype == COUCHBASE_VAL_IS_JSON) {
-            $retval = json_decode($data);
+            $retval = json_decode($data, $options['jsonassoc']);
         } else if ($sertype == COUCHBASE_VAL_IS_IGBINARY) {
             $retval = igbinary_unserialize($data);
         } else if ($sertype == COUCHBASE_VAL_IS_SERIALIZED) {
@@ -204,5 +213,6 @@ function couchbase_default_encoder($value) {
  * @internal
  */
 function couchbase_default_decoder($bytes, $flags, $datatype) {
-    return couchbase_basic_decoder_v1($bytes, $flags, $datatype);
+    global $COUCHBASE_DEFAULT_DECOPTS;
+    return couchbase_basic_decoder_v1($bytes, $flags, $datatype, $COUCHBASE_DEFAULT_DECOPTS);
 }
