@@ -146,6 +146,32 @@ class CouchbaseBucket {
         return $this->_endure($ids, $options,
             $this->me->replace($ids, $val, $options));
     }
+    
+    /**
+     * Appends content to a document.
+     *
+     * @param string|array $ids
+     * @param mixed $val
+     * @param array $options cas
+     * @return mixed
+     */
+    public function append($ids, $val = NULL, $options = array()) {
+        return $this->_endure($ids, $options,
+            $this->me->append($ids, $val, $options));
+    }
+    
+    /**
+     * Prepends content to a document.
+     *
+     * @param string|array $ids
+     * @param mixed $val
+     * @param array $options cas
+     * @return mixed
+     */
+    public function prepend($ids, $val = NULL, $options = array()) {
+        return $this->_endure($ids, $options,
+            $this->me->prepend($ids, $val, $options));
+    }
 
     /**
      * Deletes a document.

@@ -1098,6 +1098,32 @@ char *PCBC_PHP_CODESTR = \
 "        return $this->_endure($ids, $options,\n" \
 "            $this->me->replace($ids, $val, $options));\n" \
 "    }\n" \
+"    \n" \
+"    /**\n" \
+"     * Appends content to a document.\n" \
+"     *\n" \
+"     * @param string|array $ids\n" \
+"     * @param mixed $val\n" \
+"     * @param array $options cas\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function append($ids, $val = NULL, $options = array()) {\n" \
+"        return $this->_endure($ids, $options,\n" \
+"            $this->me->append($ids, $val, $options));\n" \
+"    }\n" \
+"    \n" \
+"    /**\n" \
+"     * Prepends content to a document.\n" \
+"     *\n" \
+"     * @param string|array $ids\n" \
+"     * @param mixed $val\n" \
+"     * @param array $options cas\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function prepend($ids, $val = NULL, $options = array()) {\n" \
+"        return $this->_endure($ids, $options,\n" \
+"            $this->me->prepend($ids, $val, $options));\n" \
+"    }\n" \
 "\n" \
 "    /**\n" \
 "     * Deletes a document.\n" \
