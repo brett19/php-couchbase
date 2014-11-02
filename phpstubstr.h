@@ -768,6 +768,42 @@ char *PCBC_PHP_CODESTR = \
 "    }\n" \
 "};\n" \
 "/**\n" \
+" * File for the CouchbaseN1qlQuery class.\n" \
+" */\n" \
+"\n" \
+"/**\n" \
+" * Represents a N1QL query to be executed against a Couchbase bucket.\n" \
+" *\n" \
+" * @package Couchbase\n" \
+" */\n" \
+"class CouchbaseN1qlQuery {\n" \
+"    /**\n" \
+"     * @var string\n" \
+"     * @internal\n" \
+"     */\n" \
+"    public $querystr = '';\n" \
+"\n" \
+"    /**\n" \
+"     * Creates a new N1qlQuery instance directly from a N1QL DML.\n" \
+"     * @param $str\n" \
+"     * @return CouchbaseNq1lQuery\n" \
+"     */\n" \
+"    static public function fromString($str) {\n" \
+"        $res = new CouchbaseNq1lQuery();\n" \
+"        $res->querystr = $str;\n" \
+"        return $res;\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Generates the N1QL string as it will be passed to the server.\n" \
+"     *\n" \
+"     * @return string\n" \
+"     */\n" \
+"    public function toString() {\n" \
+"        return $this->querystr;\n" \
+"    }\n" \
+"}\n" \
+"/**\n" \
 " * File for the CouchbaseCluster class.\n" \
 " *\n" \
 " * @author Brett Lawson <brett19@gmail.com>\n" \
