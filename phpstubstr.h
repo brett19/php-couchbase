@@ -714,10 +714,10 @@ char *PCBC_PHP_CODESTR = \
 "            $this->options['startkey_docid'] = '';\n" \
 "        }\n" \
 "        if ($end !== NULL) {\n" \
-"            $this->options['startkey_docid'] =\n" \
+"            $this->options['endkey_docid'] =\n" \
 "                str_replace('\\\\\\\\', '\\\\', json_encode($end));\n" \
 "        } else {\n" \
-"            $this->options['startkey_docid'] = '';\n" \
+"            $this->options['endkey_docid'] = '';\n" \
 "        }\n" \
 "        return $this;\n" \
 "    }\n" \
