@@ -658,7 +658,8 @@ char *PCBC_PHP_CODESTR = \
 "     * @return $this\n" \
 "     */\n" \
 "    public function key($key) {\n" \
-"        $this->options['key'] = $key;\n" \
+"        $this->options['key'] = \n" \
+"            str_replace('\\\\\\\\', '\\\\', json_encode($key));\n" \
 "        return $this;\n" \
 "    }\n" \
 "\n" \
