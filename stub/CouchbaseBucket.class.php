@@ -206,17 +206,19 @@ class CouchbaseBucket {
      */
     public function getAndTouch($id, $expiry, $options = array()) {
         $options['expiry'] = $expiry;
-        return $this->me->getAndTouch($id, $expiry, $options);
+        return $this->me->get($id, $options);
     }
 
     /**
      * Retrieves a document and locks it.
      *
      * @param string $id
+     * @param integer $lockTime
      * @param array $options
      * @return mixed
      */
-    public function getAndLock($id, $options = array()) {
+    public function getAndLock($id, $lockTime, $options = array()) {
+        $options['lockTime'] = $lockTime;
         return $this->me->get($id, $options);
     }
 
