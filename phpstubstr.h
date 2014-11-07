@@ -1195,7 +1195,7 @@ char *PCBC_PHP_CODESTR = \
 "     */\n" \
 "    public function getAndTouch($id, $expiry, $options = array()) {\n" \
 "        $options['expiry'] = $expiry;\n" \
-"        return $this->me->getAndTouch($id, $expiry, $options);\n" \
+"        return $this->me->get($id, $options);\n" \
 "    }\n" \
 "\n" \
 "    /**\n" \
@@ -1205,7 +1205,8 @@ char *PCBC_PHP_CODESTR = \
 "     * @param array $options\n" \
 "     * @return mixed\n" \
 "     */\n" \
-"    public function getAndLock($id, $options = array()) {\n" \
+"    public function getAndLock($id, $lockTime, $options = array()) {\n" \
+"		  $options['lockTime'] = $lockTime;\n"\
 "        return $this->me->get($id, $options);\n" \
 "    }\n" \
 "\n" \
