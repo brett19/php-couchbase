@@ -18,10 +18,10 @@
         <email>brett@couchbase.com</email>
         <active>yes</active>
     </lead>
-    <date>2014-11-04</date>
+    <date>2014-12-02</date>
     <version>
-        <release>2.0.1</release>
-        <api>2.0.1</api>
+        <release>2.0.2</release>
+        <api>2.0.2</api>
     </version>
     <stability>
         <release>stable</release>
@@ -33,10 +33,11 @@
         This is a patch update to the PHP 2.0 SDK.
         
         Changes:
-        * PCBC-303: Allow JSON decoding as associative array.
-        * Added missing append/prepend forwarders.
-        * Fixed various issues with query creation and execution.
-        * Corrected various build issues.
+        * PCBC-310: Corrected segfault occuring in some cases when
+            running under Apache and IIS.
+        * Updated PHP script executer to provide accurate error
+            information in Exception stack traces.
+        * Refactored code base for better maintainability.
     </notes>
     <contents>
         <dir name="/">
@@ -45,14 +46,23 @@
             <file role="src" name="config.m4"/>
             <file role="src" name="config.w32"/>
             <file role="src" name="bucket.c"/>
+            <file role="src" name="bucket.h"/>
+            <file role="src" name="cas.c"/>
+            <file role="src" name="cas.h"/>
             <file role="src" name="cluster.c"/>
+            <file role="src" name="cluster.h"/>
             <file role="src" name="couchbase.c"/>
             <file role="src" name="couchbase.h"/>
             <file role="src" name="datainfo.h"/>
-            <file role="src" name="exception.h"/>
             <file role="src" name="exception.c"/>
+            <file role="src" name="exception.h"/>
+            <file role="src" name="metadoc.c"/>
+            <file role="src" name="metadoc.h"/>
             <file role="src" name="paramparser.h"/>
             <file role="src" name="php_couchbase.h"/>
+            <file role="src" name="phphelpers.h"/>
+            <file role="src" name="transcoding.c"/>
+            <file role="src" name="transcoding.h"/>
             <file role="src" name="phpstubstr.h"/>
         </dir>
     </contents>
@@ -182,6 +192,27 @@
                 * Added missing append/prepend forwarders.
                 * Fixed various issues with query creation and execution.
                 * Corrected various build issues.
+            </notes>
+        </release>
+        <release>
+            <date>2014-12-02</date>
+            <version>
+                <release>2.0.2</release>
+                <api>2.0.2</api>
+            </version>
+            <stability>
+                <release>stable</release>
+                <api>stable</api>
+            </stability>
+            <notes>
+                This is a patch update to the PHP 2.0 SDK.
+                
+                Changes:
+                * PCBC-310: Corrected segfault occuring in some cases when
+                    running under Apache and IIS.
+                * Updated PHP script executer to provide accurate error
+                    information in Exception stack traces.
+                * Refactored code base for better maintainability.
             </notes>
         </release>
     </changelog>
