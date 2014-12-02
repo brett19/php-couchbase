@@ -31,3 +31,6 @@ include/
 docs/
 /Debug/
 /test.cache
+/config.nice.bat
+/configure.bat
+/configure.js

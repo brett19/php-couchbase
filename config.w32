@@ -2,10 +2,13 @@ ARG_WITH("couchbase", "Couchbase support", "no");
 
 if (PHP_COUCHBASE != "no") {
     couchbase_source = 
-	    "couchbase.c " + 
-		"cluster.c " +
-		"bucket.c " +
-		"exception.c";
+	    "bucket.c " +
+		"cas.c " +
+	    "cluster.c " +
+		"couchbase.c " + 
+		"exception.c " +
+		"metadoc.c " +
+		"transcoding.c ";
 	
 	if (CHECK_LIB("libcouchbase.lib", "couchbase", PHP_COUCHBASE) &&
 			CHECK_HEADER_ADD_INCLUDE("libcouchbase\\couchbase.h", "CFLAGS_COUCHBASE", PHP_COUCHBASE+"\\include;"+PHP_PHP_BUILD+"\\include\\libcouchbase")){

@@ -1,15 +1,50 @@
-#include <libcouchbase/couchbase.h>
 #include "couchbase.h"
+#include "cas.h"
+#include "metadoc.h"
 #include "phpstubstr.h"
+
+ZEND_DECLARE_MODULE_GLOBALS(couchbase)
 
 #define PCBC_LONG_CONSTANT(key, val) \
 	REGISTER_LONG_CONSTANT("COUCHBASE_"key, val, CONST_CS | CONST_PERSISTENT)
+#define PCBC_REGISTER_CONST(c) \
+	REGISTER_LONG_CONSTANT("COUCHBASE_"#c, c, CONST_CS | CONST_PERSISTENT)
+#define PCBC_REGISTER_LCBCONST(c) \
+	REGISTER_LONG_CONSTANT("COUCHBASE_"#c, LCB_##c, CONST_CS | CONST_PERSISTENT)
+
+static void php_extname_init_globals(zend_couchbase_globals *couchbase_globals)
+{
+	couchbase_globals->first_bconn = NULL;
+	couchbase_globals->last_bconn = NULL;
+}
 
 PHP_MINIT_FUNCTION(couchbase)
 {
+	ZEND_INIT_MODULE_GLOBALS(couchbase, php_extname_init_globals, NULL);
+
 	couchbase_init_exceptions(INIT_FUNC_ARGS_PASSTHRU);
+	couchbase_init_cas(INIT_FUNC_ARGS_PASSTHRU);
+	couchbase_init_metadoc(INIT_FUNC_ARGS_PASSTHRU);
 	couchbase_init_cluster(INIT_FUNC_ARGS_PASSTHRU);
 	couchbase_init_bucket(INIT_FUNC_ARGS_PASSTHRU);
+
+	PCBC_REGISTER_CONST(PERSISTTO_MASTER);
+	PCBC_REGISTER_CONST(PERSISTTO_ONE);
+	PCBC_REGISTER_CONST(PERSISTTO_TWO);
+	PCBC_REGISTER_CONST(PERSISTTO_THREE);
+	PCBC_REGISTER_CONST(REPLICATETO_ONE);
+	PCBC_REGISTER_CONST(REPLICATETO_TWO);
+	PCBC_REGISTER_CONST(REPLICATETO_THREE);
+
+	PCBC_REGISTER_LCBCONST(CNTL_OP_TIMEOUT);
+	PCBC_REGISTER_LCBCONST(CNTL_VIEW_TIMEOUT);
+	PCBC_REGISTER_LCBCONST(CNTL_DURABILITY_INTERVAL);
+	PCBC_REGISTER_LCBCONST(CNTL_DURABILITY_TIMEOUT);
+	PCBC_REGISTER_LCBCONST(CNTL_HTTP_TIMEOUT);
+	PCBC_REGISTER_LCBCONST(CNTL_CONFIGURATION_TIMEOUT);
+	PCBC_REGISTER_LCBCONST(CNTL_CONFDELAY_THRESH);
+	PCBC_REGISTER_LCBCONST(CNTL_CONFIG_NODE_TIMEOUT);
+	PCBC_REGISTER_LCBCONST(CNTL_HTCONFIG_IDLE_TIMEOUT);
 
 	PCBC_LONG_CONSTANT("SUCCESS", LCB_SUCCESS);
 	PCBC_LONG_CONSTANT("AUTH_CONTINUE", LCB_AUTH_CONTINUE);
@@ -55,15 +90,25 @@ PHP_MINIT_FUNCTION(couchbase)
 	PCBC_LONG_CONSTANT("KEYALREADYEXISTS", LCB_KEY_EEXISTS);
 	PCBC_LONG_CONSTANT("KEYNOTFOUND", LCB_KEY_ENOENT);
 
-    return SUCCESS;
+	return SUCCESS;
+}
+
+PHP_MSHUTDOWN_FUNCTION(couchbsae)
+{
+	couchbase_shutdown_bucket(SHUTDOWN_FUNC_ARGS_PASSTHRU);
 }
 
 PHP_RINIT_FUNCTION(couchbase)
 {
-	int retval = zend_eval_string(PCBC_PHP_CODESTR, NULL, (char *)"CouchbaseNative" TSRMLS_CC);
-	if (retval != SUCCESS) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to inject Couchbase stubs.");
-		return FAILURE;
+	
+	int stub_idx;
+	for (stub_idx = 0; stub_idx < sizeof(PCBC_PHP_CODESTR) / sizeof(pcbc_stub_data); ++stub_idx) {
+		pcbc_stub_data *this_stub = &PCBC_PHP_CODESTR[stub_idx];
+		int retval = zend_eval_string((char*)this_stub->data, NULL, (char*)this_stub->filename TSRMLS_CC);
+		if (retval != SUCCESS) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to inject Couchbase stubs.");
+			return FAILURE;
+		}
 	}
 	return SUCCESS;
 }
@@ -83,17 +128,17 @@ zend_module_entry couchbase_module_entry = {
 #elif ZEND_MODULE_API_NO >= 20010901
 	STANDARD_MODULE_HEADER,
 #endif
-    PHP_COUCHBASE_EXTNAME,
-    NULL,
-    PHP_MINIT(couchbase),
-    NULL,
-    PHP_RINIT(couchbase),
-    NULL,
-    NULL,
+	PHP_COUCHBASE_EXTNAME,
+	NULL,
+	PHP_MINIT(couchbase),
+	NULL,
+	PHP_RINIT(couchbase),
+	NULL,
+	NULL,
 #if ZEND_MODULE_API_NO >= 20010901
-    PHP_COUCHBASE_VERSION,
+	PHP_COUCHBASE_VERSION,
 #endif
-    STANDARD_MODULE_PROPERTIES
+	STANDARD_MODULE_PROPERTIES
 };
 
 #ifdef COMPILE_DL_COUCHBASE

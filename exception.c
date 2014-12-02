@@ -21,17 +21,21 @@ zval * create_exception(zend_class_entry *exception_ce, const char *message, lon
 	return ex;
 }
 
+zval * create_pcbc_exception(const char *message, long code TSRMLS_DC) {
+	return create_exception(cb_exception_ce, message, code TSRMLS_CC);
+}
+
 zval * create_lcb_exception(long code TSRMLS_DC) {
 	const char *str = lcb_strerror(NULL, (lcb_error_t)code);
 	return create_exception(cb_exception_ce, str, code TSRMLS_CC);
 }
 
-#define setup(var, name, parent)                                                                                \
-        do {                                                                                                                                \
-                zend_class_entry cbe;                                                                                        \
-                INIT_CLASS_ENTRY(cbe, name, NULL);                                                                \
-                var = zend_register_internal_class_ex(&cbe, parent, NULL TSRMLS_CC); \
-        } while(0)
+#define setup(var, name, parent) \
+	do { \
+		zend_class_entry cbe; \
+		INIT_CLASS_ENTRY(cbe, name, NULL); \
+		var = zend_register_internal_class_ex(&cbe, parent, NULL TSRMLS_CC); \
+	} while(0)
 
 void couchbase_init_exceptions(INIT_FUNC_ARGS) {
 #if ZEND_MODULE_API_NO >= 20060613

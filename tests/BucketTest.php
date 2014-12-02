@@ -227,7 +227,7 @@ class BucketTest extends CouchbaseTestCase {
         $this->assertValidMetaDoc($res, 'cas');
 
         $this->wrapException(function() use($b, $key, $old_cas) {
-            $b->save($key, 'ferret', array('cas'=>$old_cas));
+            $b->replace($key, 'ferret', array('cas'=>$old_cas));
         }, 'CouchbaseException', COUCHBASE_KEYALREADYEXISTS);
     }
 
