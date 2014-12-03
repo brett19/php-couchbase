@@ -798,10 +798,10 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "    /**\n" \
 "     * Creates a new N1qlQuery instance directly from a N1QL DML.\n" \
 "     * @param $str\n" \
-"     * @return CouchbaseNq1lQuery\n" \
+"     * @return CouchbaseN1qlQuery\n" \
 "     */\n" \
 "    static public function fromString($str) {\n" \
-"        $res = new CouchbaseNq1lQuery();\n" \
+"        $res = new CouchbaseN1qlQuery();\n" \
 "        $res->querystr = $str;\n" \
 "        return $res;\n" \
 "    }\n" \
