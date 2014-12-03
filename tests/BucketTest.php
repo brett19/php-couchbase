@@ -243,11 +243,11 @@ class BucketTest extends CouchbaseTestCase {
         $res = $b->upsert($key, 'jog');
         $this->assertValidMetaDoc($res, 'cas');
 
-        $res = $b->getAndLock($key, array('lockTime' => 1));
+        $res = $b->getAndLock($key, 1);
         $this->assertValidMetaDoc($res, 'value', 'flags', 'cas');
 
         $this->wrapException(function() use($b, $key) {
-            $b->getAndLock($key, array('lockTime' => 1));
+            $b->getAndLock($key, 1);
         }, 'CouchbaseException', COUCHBASE_TMPFAIL);
     }
     
