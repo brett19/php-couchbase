@@ -223,7 +223,7 @@ static void durability_callback(lcb_t instance, const void *cookie,
 	if (error == LCB_SUCCESS) {
 		ZVAL_TRUE(doc);
 	} else {
-		bopcookie_error(cookie, data, NULL, error TSRMLS_CC);
+		bopcookie_error(cookie, data, doc, error TSRMLS_CC);
 	}
 }
 
