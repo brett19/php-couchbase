@@ -601,6 +601,9 @@ PHP_METHOD(Bucket, append)
 			cmd[ii].v.v0.nhashkey = Z_STRLEN_P(zgroupid);
 		}
 
+		// Flags ignored for this op, enforced by libcouchbase
+        cmd[ii].v.v0.flags = 0;
+
 		cmds[ii] = &cmd[ii];
 	}
 
@@ -654,6 +657,9 @@ PHP_METHOD(Bucket, prepend)
 			cmd[ii].v.v0.hashkey = Z_STRVAL_P(zgroupid);
 			cmd[ii].v.v0.nhashkey = Z_STRLEN_P(zgroupid);
 		}
+
+        // Flags ignored for this op, enforced by libcouchbase
+        cmd[ii].v.v0.flags = 0;
 
 		cmds[ii] = &cmd[ii];
 	}
