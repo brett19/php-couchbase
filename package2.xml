@@ -18,10 +18,10 @@
         <email>brett@couchbase.com</email>
         <active>yes</active>
     </lead>
-    <date>2014-12-02</date>
+    <date>2015-01-05</date>
     <version>
-        <release>2.0.2</release>
-        <api>2.0.2</api>
+        <release>2.0.3</release>
+        <api>2.0.3</api>
     </version>
     <stability>
         <release>stable</release>
@@ -31,13 +31,11 @@
     </license>
     <notes>
         This is a patch update to the PHP 2.0 SDK.
-        
+
         Changes:
-        * PCBC-310: Corrected segfault occuring in some cases when
-            running under Apache and IIS.
-        * Updated PHP script executer to provide accurate error
-            information in Exception stack traces.
-        * Refactored code base for better maintainability.
+        * PCBC-318: Fix append/prepend operations failing on new libcouchbase.
+        * PCBC-319: Correct segfault when using persist_to/replicate_to.
+        * Corrected typo in N1QL query interface.
     </notes>
     <contents>
         <dir name="/">
@@ -186,7 +184,7 @@
             </stability>
             <notes>
                 This is a patch update to the PHP 2.0 SDK.
-                
+
                 Changes:
                 * PCBC-303: Allow JSON decoding as associative array.
                 * Added missing append/prepend forwarders.
@@ -206,7 +204,7 @@
             </stability>
             <notes>
                 This is a patch update to the PHP 2.0 SDK.
-                
+
                 Changes:
                 * PCBC-310: Corrected segfault occuring in some cases when
                     running under Apache and IIS.
@@ -214,6 +212,25 @@
                     information in Exception stack traces.
                 * Refactored code base for better maintainability.
             </notes>
+        </release>
+        <release>
+          <date>2015-01-05</date>
+          <version>
+            <release>2.0.3</release>
+            <api>2.0.3</api>
+          </version>
+          <stability>
+            <release>stable</release>
+            <api>stable</api>
+          </stability>
+          <notes>
+            This is a patch update to the PHP 2.0 SDK.
+
+            Changes:
+            * PCBC-318: Fix append/prepend operations failing on new libcouchbase.
+            * PCBC-319: Correct segfault when using persist_to/replicate_to.
+            * Corrected typo in N1QL query interface.
+          </notes>
         </release>
     </changelog>
 </package>
