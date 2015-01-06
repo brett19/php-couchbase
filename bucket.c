@@ -432,7 +432,8 @@ PHP_METHOD(Bucket, insert)
 
 	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
 
-	lcb_store(data->conn->lcb, cookie, num_cmds, cmds);
+	lcb_store(data->conn->lcb, cookie,
+	        num_cmds, (const lcb_store_cmd_t*const*)cmds);
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
@@ -490,7 +491,8 @@ PHP_METHOD(Bucket, upsert)
 
 	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
 
-	lcb_store(data->conn->lcb, cookie, num_cmds, cmds);
+	lcb_store(data->conn->lcb, cookie,
+	        num_cmds, (const lcb_store_cmd_t*const*)cmds);
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
@@ -552,7 +554,8 @@ PHP_METHOD(Bucket, replace)
 
 	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
 
-	lcb_store(data->conn->lcb, cookie, num_cmds, cmds);
+	lcb_store(data->conn->lcb, cookie,
+	        num_cmds, (const lcb_store_cmd_t*const*)cmds);
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
@@ -609,7 +612,8 @@ PHP_METHOD(Bucket, append)
 
 	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
 
-	lcb_store(data->conn->lcb, cookie, num_cmds, cmds);
+	lcb_store(data->conn->lcb, cookie,
+	        num_cmds, (const lcb_store_cmd_t*const*)cmds);
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
@@ -666,7 +670,8 @@ PHP_METHOD(Bucket, prepend)
 
 	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
 
-	lcb_store(data->conn->lcb, cookie, num_cmds, cmds);
+	lcb_store(data->conn->lcb, cookie,
+	        num_cmds, (const lcb_store_cmd_t*const*)cmds);
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
@@ -716,7 +721,8 @@ PHP_METHOD(Bucket, remove)
 
 	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
 
-	lcb_remove(data->conn->lcb, cookie, num_cmds, cmds);
+	lcb_remove(data->conn->lcb, cookie,
+	        num_cmds, (const lcb_remove_cmd_t*const*)cmds);
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
@@ -771,7 +777,8 @@ PHP_METHOD(Bucket, get)
 
 	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
 
-	lcb_get(data->conn->lcb, cookie, num_cmds, cmds);
+	lcb_get(data->conn->lcb, cookie,
+	        num_cmds, (const lcb_get_cmd_t*const*)cmds);
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
@@ -826,7 +833,8 @@ PHP_METHOD(Bucket, getFromReplica)
 
 	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
 
-	lcb_get_replica(data->conn->lcb, cookie, num_cmds, cmds);
+	lcb_get_replica(data->conn->lcb, cookie,
+	        num_cmds, (const lcb_get_replica_cmd_t*const*)cmds);
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
@@ -875,7 +883,8 @@ PHP_METHOD(Bucket, unlock)
 
 	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
 
-	lcb_unlock(data->conn->lcb, cookie, num_cmds, cmds);
+	lcb_unlock(data->conn->lcb, cookie,
+	        num_cmds, (const lcb_unlock_cmd_t*const*)cmds);
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
@@ -931,7 +940,8 @@ PHP_METHOD(Bucket, counter)
 
 	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
 
-	lcb_arithmetic(data->conn->lcb, cookie, num_cmds, cmds);
+	lcb_arithmetic(data->conn->lcb, cookie,
+	        num_cmds, (const lcb_arithmetic_cmd_t*const*)cmds);
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
@@ -943,7 +953,7 @@ PHP_METHOD(Bucket, flush)
 {
 	bucket_object *data = PHP_THISOBJ();
 	lcb_flush_cmd_t cmd = { 0 };
-	lcb_flush_cmd_t *cmds = { &cmd };
+	const lcb_flush_cmd_t *const cmds = { &cmd };
 
 	lcb_flush(data->conn->lcb, NULL, 1, &cmds);
 	pcbc_wait(data TSRMLS_CC);
@@ -1026,9 +1036,9 @@ PHP_METHOD(Bucket, durability)
 				  &zid, &zcas, &zgroupid, &zpersist, &zreplica);
 
 	num_cmds = pcbc_pp_keycount(&pp_state);
-	cmd = emalloc(sizeof(lcb_arithmetic_cmd_t) * num_cmds);
-	cmds = emalloc(sizeof(lcb_arithmetic_cmd_t*) * num_cmds);
-	memset(cmd, 0, sizeof(lcb_arithmetic_cmd_t) * num_cmds);
+	cmd = emalloc(sizeof(lcb_durability_cmd_t) * num_cmds);
+	cmds = emalloc(sizeof(lcb_durability_cmd_t*) * num_cmds);
+	memset(cmd, 0, sizeof(lcb_durability_cmd_t) * num_cmds);
 
 	for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
 		PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
@@ -1061,7 +1071,8 @@ PHP_METHOD(Bucket, durability)
 
 	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
 
-	lcb_durability_poll(data->conn->lcb, cookie, &opts, num_cmds, cmds);
+	lcb_durability_poll(data->conn->lcb, cookie, &opts,
+	        num_cmds, (const lcb_durability_cmd_t*const*)cmds);
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);

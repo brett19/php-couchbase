@@ -96,6 +96,8 @@ PHP_MINIT_FUNCTION(couchbase)
 PHP_MSHUTDOWN_FUNCTION(couchbsae)
 {
 	couchbase_shutdown_bucket(SHUTDOWN_FUNC_ARGS_PASSTHRU);
+
+	return SUCCESS;
 }
 
 PHP_RINIT_FUNCTION(couchbase)
