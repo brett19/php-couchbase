@@ -307,11 +307,11 @@ class CouchbaseBucket {
 
         $resjson = json_decode($result, true);
 
-        if (isset($resjson['error'])) {
-            throw new CouchbaseException($resjson['error']['cause'], 999);
+        if (isset($resjson['errors'])) {
+            throw new CouchbaseException($resjson['errors'][0]['msg'], 999);
         }
 
-        return $resjson['resultset'];
+        return $resjson['results'];
     }
 
     /**

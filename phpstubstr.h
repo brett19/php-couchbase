@@ -1313,11 +1313,11 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "\n" \
 "        $resjson = json_decode($result, true);\n" \
 "\n" \
-"        if (isset($resjson['error'])) {\n" \
-"            throw new CouchbaseException($resjson['error']['cause'], 999);\n" \
+"        if (isset($resjson['errors'])) {\n" \
+"            throw new CouchbaseException($resjson['errors'][0]['msg'], 999);\n" \
 "        }\n" \
 "\n" \
-"        return $resjson['resultset'];\n" \
+"        return $resjson['results'];\n" \
 "    }\n" \
 "\n" \
 "    /**\n" \
