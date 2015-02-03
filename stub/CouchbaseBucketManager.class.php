@@ -50,8 +50,8 @@ class CouchbaseBucketManager {
         $ddocs = array();
         $data = json_decode($res, true);
         foreach ($data['rows'] as $row) {
-            $name = substr($row['meta']['id'], 8);
-            $ddocs[$name] = $row['json'];
+            $name = substr($row['doc']['meta']['id'], 8);
+            $ddocs[$name] = $row['doc']['json'];
         }
         return $ddocs;
     }
@@ -122,7 +122,7 @@ class CouchbaseBucketManager {
      */
     public function info()
     {
-        $path = "/pools/default/buckets/" . $this->name;
+        $path = "/pools/default/buckets/" . $this->_name;
         $res = $this->_me->http_request(2, 1, $path, NULL, 2);
         return json_decode($res, true);
     }
