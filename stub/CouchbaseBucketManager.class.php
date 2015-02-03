@@ -81,7 +81,7 @@ class CouchbaseBucketManager {
      * @returns true
      */
     public function upsertDesignDocument($name, $data) {
-        $path = '_design/' . $name;
+        $path = $this->_name . '/_design/' . $name;
         $res = $this->_me->http_request(1, 3, $path, json_encode($data), 2);
         return true;
     }
@@ -93,7 +93,7 @@ class CouchbaseBucketManager {
      * @return mixed
      */
     public function getDesignDocument($name) {
-        $path = '_design/' . $name;
+        $path = $this->_name . '/_design/' . $name;
         $res = $this->_me->http_request(1, 1, $path, NULL, 2);
         return json_decode($res, true);
     }
@@ -105,7 +105,7 @@ class CouchbaseBucketManager {
      * @return mixed
      */
     public function removeDesignDocument($name) {
-        $path = '_design/' . $name;
+        $path = $this->_name . '/_design/' . $name;
         $res = $this->_me->http_request(1, 4, $path, NULL, 2);
         return json_decode($res, true);
     }

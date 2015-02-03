@@ -1576,7 +1576,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * @returns true\n" \
 "     */\n" \
 "    public function upsertDesignDocument($name, $data) {\n" \
-"        $path = '_design/' . $name;\n" \
+"        $path = $this->_name . '/_design/' . $name;\n" \
 "        $res = $this->_me->http_request(1, 3, $path, json_encode($data), 2);\n" \
 "        return true;\n" \
 "    }\n" \
@@ -1588,7 +1588,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * @return mixed\n" \
 "     */\n" \
 "    public function getDesignDocument($name) {\n" \
-"        $path = '_design/' . $name;\n" \
+"        $path = $this->_name . '/_design/' . $name;\n" \
 "        $res = $this->_me->http_request(1, 1, $path, NULL, 2);\n" \
 "        return json_decode($res, true);\n" \
 "    }\n" \
@@ -1600,7 +1600,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * @return mixed\n" \
 "     */\n" \
 "    public function removeDesignDocument($name) {\n" \
-"        $path = '_design/' . $name;\n" \
+"        $path = $this->_name . '/_design/' . $name;\n" \
 "        $res = $this->_me->http_request(1, 4, $path, NULL, 2);\n" \
 "        return json_decode($res, true);\n" \
 "    }\n" \
