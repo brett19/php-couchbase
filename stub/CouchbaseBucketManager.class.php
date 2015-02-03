@@ -122,7 +122,7 @@ class CouchbaseBucketManager {
      */
     public function info()
     {
-        $path = "/pools/default/buckets/" . $this->name;
+        $path = "/pools/default/buckets/" . $this->_name;
         $res = $this->_me->http_request(2, 1, $path, NULL, 2);
         return json_decode($res, true);
     }
