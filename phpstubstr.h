@@ -1545,8 +1545,8 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "        $ddocs = array();\n" \
 "        $data = json_decode($res, true);\n" \
 "        foreach ($data['rows'] as $row) {\n" \
-"            $name = substr($row['doc']['meta']['id'], 8);\n" \
-"            $ddocs[$name] = $row['doc']['json'];\n" \
+"            $name = substr($row['meta']['id'], 8);\n" \
+"            $ddocs[$name] = $row['json'];\n" \
 "        }\n" \
 "        return $ddocs;\n" \
 "    }\n" \
@@ -1617,7 +1617,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     */\n" \
 "    public function info()\n" \
 "    {\n" \
-"        $path = \"/pools/default/buckets/\" . $this->_name;\n" \
+"        $path = \"/pools/default/buckets/\" . $this->name;\n" \
 "        $res = $this->_me->http_request(2, 1, $path, NULL, 2);\n" \
 "        return json_decode($res, true);\n" \
 "    }\n" \
