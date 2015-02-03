@@ -50,8 +50,8 @@ class CouchbaseBucketManager {
         $ddocs = array();
         $data = json_decode($res, true);
         foreach ($data['rows'] as $row) {
-            $name = substr($row['meta']['id'], 8);
-            $ddocs[$name] = $row['json'];
+            $name = substr($row['doc']['meta']['id'], 8);
+            $ddocs[$name] = $row['doc']['json'];
         }
         return $ddocs;
     }
