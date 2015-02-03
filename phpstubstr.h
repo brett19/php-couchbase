@@ -1577,7 +1577,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     */\n" \
 "    public function upsertDesignDocument($name, $data) {\n" \
 "        $path = '_design/' . $name;\n" \
-"        $res = $this->_me->http_request(1, 3, $path, json_encode($data), 2);\n" \
+"        $res = $this->_me->http_request(1, 3, $path, json_encode($data), 1);\n" \
 "        return true;\n" \
 "    }\n" \
 "\n" \

@@ -82,7 +82,7 @@ class CouchbaseBucketManager {
      */
     public function upsertDesignDocument($name, $data) {
         $path = '_design/' . $name;
-        $res = $this->_me->http_request(1, 3, $path, json_encode($data), 2);
+        $res = $this->_me->http_request(1, 3, $path, json_encode($data), 1);
         return true;
     }
 
