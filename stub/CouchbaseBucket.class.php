@@ -401,18 +401,13 @@ class CouchbaseBucket {
                 return $res;
             }
 
-            $dres = $this->me->durability(array(
-                $id => array('cas' => $res->cas)
-            ), array(
+            $dres = $this->me->durability($id, array(
+                'cas' => $res->cas,
                 'persist_to' => $options['persist_to'],
                 'replicate_to' => $options['replicate_to']
             ));
-
-            if ($dres) {
-                return $res;
-            } else {
-                throw new Exception('durability requirements failed');
-            }
+            
+            return $res;
         }
     }
 

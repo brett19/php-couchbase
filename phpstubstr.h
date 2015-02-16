@@ -1407,18 +1407,13 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "                return $res;\n" \
 "            }\n" \
 "\n" \
-"            $dres = $this->me->durability(array(\n" \
-"                $id => array('cas' => $res->cas)\n" \
-"            ), array(\n" \
+"            $dres = $this->me->durability($id, array(\n" \
+"                'cas' => $res->cas,\n" \
 "                'persist_to' => $options['persist_to'],\n" \
 "                'replicate_to' => $options['replicate_to']\n" \
 "            ));\n" \
-"\n" \
-"            if ($dres) {\n" \
-"                return $res;\n" \
-"            } else {\n" \
-"                throw new Exception('durability requirements failed');\n" \
-"            }\n" \
+"            \n" \
+"            return $res;\n" \
 "        }\n" \
 "    }\n" \
 "\n" \
