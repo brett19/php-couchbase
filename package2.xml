@@ -18,10 +18,10 @@
         <email>brett@couchbase.com</email>
         <active>yes</active>
     </lead>
-    <date>2015-01-05</date>
+    <date>2015-02-03</date>
     <version>
-        <release>2.0.3</release>
-        <api>2.0.3</api>
+        <release>2.0.4</release>
+        <api>2.0.4</api>
     </version>
     <stability>
         <release>stable</release>
@@ -33,9 +33,10 @@
         This is a patch update to the PHP 2.0 SDK.
 
         Changes:
-        * PCBC-318: Fix append/prepend operations failing on new libcouchbase.
-        * PCBC-319: Correct segfault when using persist_to/replicate_to.
-        * Corrected typo in N1QL query interface.
+        * PCBC-321: Corrected issue when passing incorrect option parameter type.
+        * Corrected issue related to setting timeouts.
+        * PCBC-317: Updated N1QL querying to support DP4.
+        * Fixed issue with design document management methods.
     </notes>
     <contents>
         <dir name="/">
@@ -230,6 +231,26 @@
             * PCBC-318: Fix append/prepend operations failing on new libcouchbase.
             * PCBC-319: Correct segfault when using persist_to/replicate_to.
             * Corrected typo in N1QL query interface.
+          </notes>
+        </release>
+        <release>
+          <date>2015-02-03</date>
+          <version>
+            <release>2.0.4</release>
+            <api>2.0.4</api>
+          </version>
+          <stability>
+            <release>stable</release>
+            <api>stable</api>
+          </stability>
+          <notes>
+            This is a patch update to the PHP 2.0 SDK.
+
+            Changes:
+            * PCBC-321: Corrected issue when passing incorrect option parameter type.
+            * Corrected issue related to setting timeouts.
+            * PCBC-317: Updated N1QL querying to support DP4.
+            * Fixed issue with design document management methods.
           </notes>
         </release>
     </changelog>

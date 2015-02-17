@@ -307,11 +307,11 @@ class CouchbaseBucket {
 
         $resjson = json_decode($result, true);
 
-        if (isset($resjson['error'])) {
-            throw new CouchbaseException($resjson['error']['cause'], 999);
+        if (isset($resjson['errors'])) {
+            throw new CouchbaseException($resjson['errors'][0]['msg'], 999);
         }
 
-        return $resjson['resultset'];
+        return $resjson['results'];
     }
 
     /**
@@ -401,18 +401,13 @@ class CouchbaseBucket {
                 return $res;
             }
 
-            $dres = $this->me->durability(array(
-                $id => array('cas' => $res->cas)
-            ), array(
+            $dres = $this->me->durability($id, array(
+                'cas' => $res->cas,
                 'persist_to' => $options['persist_to'],
                 'replicate_to' => $options['replicate_to']
             ));
-
-            if ($dres) {
-                return $res;
-            } else {
-                throw new Exception('durability requirements failed');
-            }
+            
+            return $res;
         }
     }
 

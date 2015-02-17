@@ -87,13 +87,19 @@ int pcbc_pp_begin(int param_count TSRMLS_DC, pcbc_pp_state *state, const char *s
     } while(1);
 
     if (param_count < state->arg_req) {
-        php_printf("Less than required number of args\n");
+        php_printf("Less than required number of args.\n");
         return FAILURE;
     }
 
     arg_unnamed = state->arg_req + state->arg_opt;
     if (param_count > arg_unnamed) {
         znamed = *args[arg_unnamed];
+
+        // Ensure that it is an options array!
+        if (Z_TYPE_P(znamed) != IS_ARRAY) {
+            php_printf("Options argument must be an associative array.\n");
+            return FAILURE;
+        }
     } else {
         znamed = NULL;
     }

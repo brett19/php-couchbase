@@ -1313,11 +1313,11 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "\n" \
 "        $resjson = json_decode($result, true);\n" \
 "\n" \
-"        if (isset($resjson['error'])) {\n" \
-"            throw new CouchbaseException($resjson['error']['cause'], 999);\n" \
+"        if (isset($resjson['errors'])) {\n" \
+"            throw new CouchbaseException($resjson['errors'][0]['msg'], 999);\n" \
 "        }\n" \
 "\n" \
-"        return $resjson['resultset'];\n" \
+"        return $resjson['results'];\n" \
 "    }\n" \
 "\n" \
 "    /**\n" \
@@ -1407,18 +1407,13 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "                return $res;\n" \
 "            }\n" \
 "\n" \
-"            $dres = $this->me->durability(array(\n" \
-"                $id => array('cas' => $res->cas)\n" \
-"            ), array(\n" \
+"            $dres = $this->me->durability($id, array(\n" \
+"                'cas' => $res->cas,\n" \
 "                'persist_to' => $options['persist_to'],\n" \
 "                'replicate_to' => $options['replicate_to']\n" \
 "            ));\n" \
-"\n" \
-"            if ($dres) {\n" \
-"                return $res;\n" \
-"            } else {\n" \
-"                throw new Exception('durability requirements failed');\n" \
-"            }\n" \
+"            \n" \
+"            return $res;\n" \
 "        }\n" \
 "    }\n" \
 "\n" \
@@ -1545,8 +1540,8 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "        $ddocs = array();\n" \
 "        $data = json_decode($res, true);\n" \
 "        foreach ($data['rows'] as $row) {\n" \
-"            $name = substr($row['meta']['id'], 8);\n" \
-"            $ddocs[$name] = $row['json'];\n" \
+"            $name = substr($row['doc']['meta']['id'], 8);\n" \
+"            $ddocs[$name] = $row['doc']['json'];\n" \
 "        }\n" \
 "        return $ddocs;\n" \
 "    }\n" \
@@ -1577,7 +1572,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     */\n" \
 "    public function upsertDesignDocument($name, $data) {\n" \
 "        $path = '_design/' . $name;\n" \
-"        $res = $this->_me->http_request(1, 3, $path, json_encode($data), 2);\n" \
+"        $res = $this->_me->http_request(1, 3, $path, json_encode($data), 1);\n" \
 "        return true;\n" \
 "    }\n" \
 "\n" \
@@ -1617,7 +1612,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     */\n" \
 "    public function info()\n" \
 "    {\n" \
-"        $path = \"/pools/default/buckets/\" . $this->name;\n" \
+"        $path = \"/pools/default/buckets/\" . $this->_name;\n" \
 "        $res = $this->_me->http_request(2, 1, $path, NULL, 2);\n" \
 "        return json_decode($res, true);\n" \
 "    }\n" \

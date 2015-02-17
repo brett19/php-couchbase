@@ -1104,14 +1104,15 @@ PHP_METHOD(Bucket, setTranscoder)
 PHP_METHOD(Bucket, setOption)
 {
 	bucket_object *data = PHP_THISOBJ();
-	lcb_uint32_t val;
-	int type;
+	long type, val;
+	lcb_uint32_t lcbval;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &type, &val) == FAILURE) {
 		RETURN_NULL();
 	}
 
-	lcb_cntl(data->conn->lcb, LCB_CNTL_SET, type, &val);
+	lcbval = val;
+	lcb_cntl(data->conn->lcb, LCB_CNTL_SET, type, &lcbval);
 
 	RETURN_LONG(val);
 }
@@ -1119,16 +1120,16 @@ PHP_METHOD(Bucket, setOption)
 PHP_METHOD(Bucket, getOption)
 {
 	bucket_object *data = PHP_THISOBJ();
-	lcb_uint32_t val;
-	int type;
+	long type;
+	lcb_uint32_t lcbval;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &type) == FAILURE) {
 		RETURN_NULL();
 	}
 
-	lcb_cntl(data->conn->lcb, LCB_CNTL_GET, type, &val);
+	lcb_cntl(data->conn->lcb, LCB_CNTL_GET, type, &lcbval);
 
-	RETURN_LONG(val);
+	RETURN_LONG(lcbval);
 }
 
 zend_function_entry bucket_methods[] = {
