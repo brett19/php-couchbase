@@ -697,13 +697,13 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "            $this->options['startkey'] =\n" \
 "                str_replace('\\\\\\\\', '\\\\', json_encode($start));\n" \
 "        } else {\n" \
-"            $this->options['startkey'] = '';\n" \
+"            unset($this->options['startkey']);\n" \
 "        }\n" \
 "        if ($end !== NULL) {\n" \
 "            $this->options['endkey'] =\n" \
 "                str_replace('\\\\\\\\', '\\\\', json_encode($end));\n" \
 "        } else {\n" \
-"            $this->options['endkey'] = '';\n" \
+"            unset($this->options['endkey']);\n" \
 "        }\n" \
 "        $this->options['inclusive_end'] = $inclusive_end ? 'true' : 'false';\n" \
 "        return $this;\n" \
