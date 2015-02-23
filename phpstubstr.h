@@ -649,15 +649,35 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * @param $group_level\n" \
 "     * @return $this\n" \
 "     */\n" \
-"    public function group($group_level) {\n" \
-"        if ($group_level >= 0) {\n" \
+"    public function group($group) {\n" \
+"        if ($group == true) {\n" \
+"          $this->options['group'] = 'true';\n" \
+"        } else if ($group == false) {\n" \
+"          $this->options['group'] = 'false';\n" \
+"          \n" \
+"        // For backwards compatibility\n" \
+"        } else if ($group >= 0) {\n" \
 "            $this->options['group'] = 'false';\n" \
-"            $this->options['group_level'] = '' . $group_level;\n" \
+"            $this->options['group_level'] = $group;\n" \
 "        } else {\n" \
 "            $this->options['group'] = 'true';\n" \
-"            $this->options['group_level'] = '0';\n" \
+"            $this->options['group_level'] = 0;\n" \
 "        }\n" \
 "        return $this;\n" \
+"    }\n" \
+"    \n" \
+"    /**\n" \
+"     * Specifies the level at which to perform view grouping.\n" \
+"     * \n" \
+"     * @param $group_level\n" \
+"     * @returns $this\n" \
+"     */\n" \
+"    public function group_level($group_level) {\n" \
+"        if ($group_level >= 0) {\n" \
+"            $this->options['group_level'] = $group_level;\n" \
+"        } else {\n" \
+"            unset($this->options['group_level']);\n" \
+"        }\n" \
 "    }\n" \
 "\n" \
 "    /**\n" \

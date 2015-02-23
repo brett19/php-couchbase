@@ -196,15 +196,35 @@ class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {
      * @param $group_level
      * @return $this
      */
-    public function group($group_level) {
-        if ($group_level >= 0) {
+    public function group($group) {
+        if ($group == true) {
+          $this->options['group'] = 'true';
+        } else if ($group == false) {
+          $this->options['group'] = 'false';
+          
+        // For backwards compatibility
+        } else if ($group >= 0) {
             $this->options['group'] = 'false';
-            $this->options['group_level'] = '' . $group_level;
+            $this->options['group_level'] = $group;
         } else {
             $this->options['group'] = 'true';
-            $this->options['group_level'] = '0';
+            $this->options['group_level'] = 0;
         }
         return $this;
+    }
+    
+    /**
+     * Specifies the level at which to perform view grouping.
+     * 
+     * @param $group_level
+     * @returns $this
+     */
+    public function group_level($group_level) {
+        if ($group_level >= 0) {
+            $this->options['group_level'] = $group_level;
+        } else {
+            unset($this->options['group_level']);
+        }
     }
 
     /**
