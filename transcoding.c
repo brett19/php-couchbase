@@ -5,12 +5,6 @@ int pcbc_bytes_to_zval(bucket_object *obj, zval **zvalue, const void *bytes,
 	zval zbytes, zflags, zdatatype;
 	zval *zparams[] = { &zbytes, &zflags, &zdatatype };
 
-	if (nbytes == 0) {
-		MAKE_STD_ZVAL(*zvalue);
-		ZVAL_NULL(*zvalue);
-		return SUCCESS;
-	}
-
 	INIT_ZVAL(zbytes);
 	ZVAL_STRINGL(&zbytes, bytes, nbytes, 0);
 
