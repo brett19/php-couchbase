@@ -18,10 +18,10 @@
         <email>brett@couchbase.com</email>
         <active>yes</active>
     </lead>
-    <date>2015-02-03</date>
+    <date>2015-03-03</date>
     <version>
-        <release>2.0.4</release>
-        <api>2.0.4</api>
+        <release>2.0.5</release>
+        <api>2.0.5</api>
     </version>
     <stability>
         <release>stable</release>
@@ -33,10 +33,10 @@
         This is a patch update to the PHP 2.0 SDK.
 
         Changes:
-        * PCBC-321: Corrected issue when passing incorrect option parameter type.
-        * Corrected issue related to setting timeouts.
-        * PCBC-317: Updated N1QL querying to support DP4.
-        * Fixed issue with design document management methods.
+        * Orphan: Corrected issue where durability checking may not propagate errors.
+        * PCBC-327: group_level semantics now support server 3.x.
+        * Orphan: Corrected issue with some ViewQuery methods.
+        * PCBC-326: Zero-length strings no longer decode as NULL.
     </notes>
     <contents>
         <dir name="/">
@@ -251,6 +251,26 @@
             * Corrected issue related to setting timeouts.
             * PCBC-317: Updated N1QL querying to support DP4.
             * Fixed issue with design document management methods.
+          </notes>
+        </release>
+        <release>
+          <date>2015-03-03</date>
+          <version>
+            <release>2.0.5</release>
+            <api>2.0.5</api>
+          </version>
+          <stability>
+            <release>stable</release>
+            <api>stable</api>
+          </stability>
+          <notes>
+            This is a patch update to the PHP 2.0 SDK.
+
+            Changes:
+            * Orphan: Corrected issue where durability checking may not propagate errors.
+            * PCBC-327: group_level semantics now support server 3.x.
+            * Orphan: Corrected issue with some ViewQuery methods.
+            * PCBC-326: Zero-length strings no longer decode as NULL.
           </notes>
         </release>
     </changelog>
