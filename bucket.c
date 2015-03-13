@@ -75,6 +75,10 @@ void bucket_free_storage(void *object TSRMLS_DC)
 	zend_hash_destroy(obj->std.properties);
 	FREE_HASHTABLE(obj->std.properties);
 
+	zval_ptr_dtor(&obj->encoder);
+	zval_ptr_dtor(&obj->decoder);
+	zval_ptr_dtor(&obj->prefix);
+
 	efree(obj);
 }
 
@@ -88,18 +92,20 @@ zend_object_value bucket_create_handler(zend_class_entry *type TSRMLS_DC)
 	obj->conn = NULL;
 
 	MAKE_STD_ZVAL(obj->encoder);
-	ZVAL_STRING(obj->encoder, "", 1);
+	ZVAL_EMPTY_STRING(obj->encoder);
 	MAKE_STD_ZVAL(obj->decoder);
-	ZVAL_STRING(obj->decoder, "", 1);
+	ZVAL_EMPTY_STRING(obj->decoder);
 	MAKE_STD_ZVAL(obj->prefix);
-	ZVAL_STRING(obj->prefix, "", 1);
+	ZVAL_EMPTY_STRING(obj->prefix);
 
 	ALLOC_HASHTABLE(obj->std.properties);
 	zend_hash_init(obj->std.properties, 0, NULL, ZVAL_PTR_DTOR, 0);
 	phlp_object_properties_init(&obj->std, type);
 
-	retval.handle = zend_objects_store_put(obj, NULL,
-			bucket_free_storage, NULL TSRMLS_CC);
+	retval.handle = zend_objects_store_put(obj,
+	        (zend_objects_store_dtor_t)zend_objects_destroy_object,
+	        (zend_objects_free_object_storage_t)bucket_free_storage,
+			NULL TSRMLS_CC);
 	retval.handlers = &bucket_handlers;
 
 	return retval;
@@ -437,6 +443,9 @@ PHP_METHOD(Bucket, insert)
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
+    for (ii = 0; ii < num_cmds; ++ii) {
+        efree((void*)cmds[ii]->v.v0.bytes);
+    }
 	efree(cmds);
 	efree(cmd);
 }
@@ -496,6 +505,9 @@ PHP_METHOD(Bucket, upsert)
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
+	for (ii = 0; ii < num_cmds; ++ii) {
+	    efree((void*)cmds[ii]->v.v0.bytes);
+	}
 	efree(cmds);
 	efree(cmd);
 }
@@ -559,6 +571,9 @@ PHP_METHOD(Bucket, replace)
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
+    for (ii = 0; ii < num_cmds; ++ii) {
+        efree((void*)cmds[ii]->v.v0.bytes);
+    }
 	efree(cmds);
 	efree(cmd);
 }
@@ -617,6 +632,9 @@ PHP_METHOD(Bucket, append)
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
+    for (ii = 0; ii < num_cmds; ++ii) {
+        efree((void*)cmds[ii]->v.v0.bytes);
+    }
 	efree(cmds);
 	efree(cmd);
 }
@@ -675,6 +693,9 @@ PHP_METHOD(Bucket, prepend)
 	pcbc_wait(data TSRMLS_CC);
 
 	bopcookie_destroy(cookie);
+    for (ii = 0; ii < num_cmds; ++ii) {
+        efree((void*)cmds[ii]->v.v0.bytes);
+    }
 	efree(cmds);
 	efree(cmd);
 }
@@ -1090,11 +1111,11 @@ PHP_METHOD(Bucket, setTranscoder)
 		RETURN_NULL();
 	}
 
-	FREE_ZVAL(data->encoder);
+	zval_ptr_dtor(&data->encoder);
 	MAKE_STD_ZVAL(data->encoder);
 	ZVAL_ZVAL(data->encoder, zencoder, 1, NULL);
 
-	FREE_ZVAL(data->decoder);
+	zval_ptr_dtor(&data->decoder);
 	MAKE_STD_ZVAL(data->decoder);
 	ZVAL_ZVAL(data->decoder, zdecoder, 1, NULL);
 

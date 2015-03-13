@@ -93,7 +93,7 @@ PHP_MINIT_FUNCTION(couchbase)
 	return SUCCESS;
 }
 
-PHP_MSHUTDOWN_FUNCTION(couchbsae)
+PHP_MSHUTDOWN_FUNCTION(couchbase)
 {
 	couchbase_shutdown_bucket(SHUTDOWN_FUNC_ARGS_PASSTHRU);
 
@@ -133,7 +133,7 @@ zend_module_entry couchbase_module_entry = {
 	PHP_COUCHBASE_EXTNAME,
 	NULL,
 	PHP_MINIT(couchbase),
-	NULL,
+	PHP_MSHUTDOWN(couchbase),
 	PHP_RINIT(couchbase),
 	NULL,
 	NULL,

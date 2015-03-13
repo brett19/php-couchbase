@@ -24,6 +24,10 @@ int pcbc_bytes_to_zval(bucket_object *obj, zval **zvalue, const void *bytes,
 		return FAILURE;
 	}
 
+	zval_dtor(&zbytes);
+	zval_dtor(&zflags);
+	zval_dtor(&zdatatype);
+
 	return SUCCESS;
 }
 
@@ -59,10 +63,12 @@ int pcbc_zval_to_bytes(bucket_object *obj, zval *value,
 		return FAILURE;
 	}
 
-	*bytes = Z_STRVAL_PP(zpbytes);
 	*nbytes = Z_STRLEN_PP(zpbytes);
+	*bytes = estrndup(Z_STRVAL_PP(zpbytes), *nbytes);
 	*flags = Z_LVAL_PP(zpflags);
 	*datatype = (lcb_uint8_t)Z_LVAL_PP(zpdatatype);
+
+	zval_dtor(&zretval);
 
 	return SUCCESS;
 }

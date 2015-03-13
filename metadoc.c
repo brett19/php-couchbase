@@ -40,9 +40,11 @@ int metadoc_create(zval *doc, zval *value, lcb_cas_t cas,
 	MAKE_STD_ZVAL(zflags);
 	ZVAL_LONG(zflags, flags);
 	zend_update_property(metadoc_ce, doc, "flags", sizeof("flags") - 1, zflags TSRMLS_CC);
+	zval_ptr_dtor(&zflags);
 
 	zcas = cas_create(cas TSRMLS_CC);
 	zend_update_property(metadoc_ce, doc, "cas", sizeof("cas") - 1, zcas TSRMLS_CC);
+	zval_ptr_dtor(&zcas);
 
 	return SUCCESS;
 }
@@ -59,8 +61,12 @@ int metadoc_from_long(zval *doc, lcb_U64 value,
 int metadoc_from_bytes(bucket_object *obj, zval *doc, const void *bytes,
 	lcb_size_t nbytes, lcb_cas_t cas, lcb_uint32_t flags,
 	lcb_uint8_t datatype TSRMLS_DC) {
-	zval *zvalue;
+	int retval;
+    zval *zvalue;
 	pcbc_bytes_to_zval(obj, &zvalue, bytes, nbytes, flags, datatype TSRMLS_CC);
 
-	return metadoc_create(doc, zvalue, cas, flags, datatype TSRMLS_CC);
+	retval = metadoc_create(doc, zvalue, cas, flags, datatype TSRMLS_CC);
+
+	zval_ptr_dtor(&zvalue);
+	return retval;
 }

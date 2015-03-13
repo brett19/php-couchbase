@@ -3,8 +3,16 @@
 
 int le_cas;
 
+static void cas_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
+{
+    lcb_cas_t *cas_data = (lcb_cas_t*)rsrc->ptr;
+    if (cas_data) {
+        efree(cas_data);
+    }
+}
+
 void couchbase_init_cas(INIT_FUNC_ARGS) {
-	le_cas = zend_register_list_destructors_ex(NULL, NULL, "CouchbaseCAS", module_number);
+	le_cas = zend_register_list_destructors_ex(cas_dtor, NULL, "CouchbaseCAS", module_number);
 }
 
 lcb_cas_t cas_retrieve(zval * zcas TSRMLS_DC) {
