@@ -6,7 +6,11 @@ int pcbc_bytes_to_zval(bucket_object *obj, zval **zvalue, const void *bytes,
 	zval *zparams[] = { &zbytes, &zflags, &zdatatype };
 
 	INIT_ZVAL(zbytes);
-	ZVAL_STRINGL(&zbytes, bytes, nbytes, 0);
+	if (nbytes > 0) {
+	    ZVAL_STRINGL(&zbytes, bytes, nbytes, 0);
+	} else {
+	    ZVAL_EMPTY_STRING(&zbytes);
+	}
 
 	INIT_ZVAL(zflags);
 	ZVAL_LONG(&zflags, flags);
