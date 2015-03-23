@@ -396,7 +396,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "        } else if ($sertype == COUCHBASE_VAL_IS_DOUBLE) {\n" \
 "            $retval = floatval($data);\n" \
 "        } else if ($sertype == COUCHBASE_VAL_IS_BOOL) {\n" \
-"            $retval = boolval($data);\n" \
+"            $retval = $data != \"\";\n" \
 "        } else if ($sertype == COUCHBASE_VAL_IS_JSON) {\n" \
 "            $retval = json_decode($data, $options['jsonassoc']);\n" \
 "        } else if ($sertype == COUCHBASE_VAL_IS_IGBINARY) {\n" \

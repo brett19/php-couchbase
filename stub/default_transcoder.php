@@ -162,7 +162,7 @@ function couchbase_basic_decoder_v1($bytes, $flags, $datatype, $options) {
         } else if ($sertype == COUCHBASE_VAL_IS_DOUBLE) {
             $retval = floatval($data);
         } else if ($sertype == COUCHBASE_VAL_IS_BOOL) {
-            $retval = boolval($data);
+            $retval = $data != "";
         } else if ($sertype == COUCHBASE_VAL_IS_JSON) {
             $retval = json_decode($data, $options['jsonassoc']);
         } else if ($sertype == COUCHBASE_VAL_IS_IGBINARY) {
