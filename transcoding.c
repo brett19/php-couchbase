@@ -9,7 +9,7 @@ int pcbc_bytes_to_zval(bucket_object *obj, zval **zvalue, const void *bytes,
 	if (nbytes > 0) {
 	    ZVAL_STRINGL(&zbytes, bytes, nbytes, 0);
 	} else {
-	    ZVAL_EMPTY_STRING(&zbytes);
+	    ZVAL_STRINGL(&zbytes, "", 0, 0);
 	}
 
 	INIT_ZVAL(zflags);
@@ -23,10 +23,6 @@ int pcbc_bytes_to_zval(bucket_object *obj, zval **zvalue, const void *bytes,
 		3, zparams TSRMLS_CC) != SUCCESS) {
 		return FAILURE;
 	}
-
-	zval_dtor(&zbytes);
-	zval_dtor(&zflags);
-	zval_dtor(&zdatatype);
 
 	return SUCCESS;
 }
