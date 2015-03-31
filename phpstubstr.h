@@ -1606,7 +1606,11 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "    public function getDesignDocument($name) {\n" \
 "        $path = '_design/' . $name;\n" \
 "        $res = $this->_me->http_request(1, 1, $path, NULL, 2);\n" \
-"        return json_decode($res, true);\n" \
+"        $data = json_decode($res, true);\n" \
+"        if (isset($data['error'])) {\n" \
+"            return false;\n" \
+"        }\n" \
+"        return $data;\n" \
 "    }\n" \
 "\n" \
 "    /**\n" \

@@ -95,7 +95,11 @@ class CouchbaseBucketManager {
     public function getDesignDocument($name) {
         $path = '_design/' . $name;
         $res = $this->_me->http_request(1, 1, $path, NULL, 2);
-        return json_decode($res, true);
+        $data = json_decode($res, true);
+        if (isset($data['error'])) {
+            return false;
+        }
+        return $data;
     }
 
     /**
