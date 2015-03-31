@@ -225,6 +225,7 @@ class _CouchbaseDefaultViewQuery extends CouchbaseViewQuery {
         } else {
             unset($this->options['group_level']);
         }
+        return $this;
     }
 
     /**

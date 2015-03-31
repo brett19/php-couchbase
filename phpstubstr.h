@@ -678,6 +678,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "        } else {\n" \
 "            unset($this->options['group_level']);\n" \
 "        }\n" \
+"        return $this;\n" \
 "    }\n" \
 "\n" \
 "    /**\n" \
