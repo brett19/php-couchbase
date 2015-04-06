@@ -1361,15 +1361,6 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "    }\n" \
 "\n" \
 "    /**\n" \
-"     * Flushes a bucket (clears all data).\n" \
-"     *\n" \
-"     * @return mixed\n" \
-"     */\n" \
-"    public function flush() {\n" \
-"        return $this->me->flush();\n" \
-"    }\n" \
-"\n" \
-"    /**\n" \
 "     * Sets custom encoder and decoder functions for handling serialization.\n" \
 "     *\n" \
 "     * @param string $encoder The encoder function name\n" \
@@ -1622,6 +1613,17 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "    public function removeDesignDocument($name) {\n" \
 "        $path = '_design/' . $name;\n" \
 "        $res = $this->_me->http_request(1, 4, $path, NULL, 2);\n" \
+"        return json_decode($res, true);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Flushes this bucket (clears all data).\n" \
+"     *\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function flush() {\n" \
+"        $path = \"/pools/default/buckets/\" . $this->_name . \"/controller/doFlush\";\n" \
+"        $res = $this->_me->http_request(2, 1, $path, NULL, 2);\n" \
 "        return json_decode($res, true);\n" \
 "    }\n" \
 "\n" \

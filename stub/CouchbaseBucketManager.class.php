@@ -115,6 +115,17 @@ class CouchbaseBucketManager {
     }
 
     /**
+     * Flushes this bucket (clears all data).
+     *
+     * @return mixed
+     */
+    public function flush() {
+        $path = "/pools/default/buckets/" . $this->_name . "/controller/doFlush";
+        $res = $this->_me->http_request(2, 1, $path, NULL, 2);
+        return json_decode($res, true);
+    }
+
+    /**
      * Retrieves bucket status information
      *
      * Returns an associative array of status information as seen

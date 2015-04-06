@@ -334,15 +334,6 @@ class CouchbaseBucket {
     }
 
     /**
-     * Flushes a bucket (clears all data).
-     *
-     * @return mixed
-     */
-    public function flush() {
-        return $this->me->flush();
-    }
-
-    /**
      * Sets custom encoder and decoder functions for handling serialization.
      *
      * @param string $encoder The encoder function name
