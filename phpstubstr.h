@@ -1623,7 +1623,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     */\n" \
 "    public function flush() {\n" \
 "        $path = \"/pools/default/buckets/\" . $this->_name . \"/controller/doFlush\";\n" \
-"        $res = $this->_me->http_request(2, 1, $path, NULL, 2);\n" \
+"        $res = $this->_me->http_request(2, 2, $path, NULL, 2);\n" \
 "        return json_decode($res, true);\n" \
 "    }\n" \
 "\n" \
