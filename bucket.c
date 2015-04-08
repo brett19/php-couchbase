@@ -199,11 +199,6 @@ static void touch_callback(lcb_t instance, const void *cookie,
 	}
 }
 
-static void flush_callback(lcb_t instance, const void *cookie,
-			lcb_error_t error, const lcb_flush_resp_t *resp) {
-	// Nothing to care about...
-}
-
 static void http_complete_callback(lcb_http_request_t request, lcb_t instance,
 			const void *cookie, lcb_error_t error,
 			const lcb_http_resp_t *resp) {
@@ -339,7 +334,6 @@ PHP_METHOD(Bucket, __construct)
 		lcb_set_arithmetic_callback(instance, arithmetic_callback);
 		lcb_set_remove_callback(instance, remove_callback);
 		lcb_set_touch_callback(instance, touch_callback);
-		lcb_set_flush_callback(instance, flush_callback);
 		lcb_set_http_complete_callback(instance, http_complete_callback);
 		lcb_set_durability_callback(instance, durability_callback);
 
@@ -970,16 +964,6 @@ PHP_METHOD(Bucket, counter)
 	efree(cmd);
 }
 
-PHP_METHOD(Bucket, flush)
-{
-	bucket_object *data = PHP_THISOBJ();
-	lcb_flush_cmd_t cmd = { 0 };
-	const lcb_flush_cmd_t *const cmds = { &cmd };
-
-	lcb_flush(data->conn->lcb, NULL, 1, &cmds);
-	pcbc_wait(data TSRMLS_CC);
-}
-
 PHP_METHOD(Bucket, http_request)
 {
 	bucket_object *data = PHP_THISOBJ();
@@ -1165,7 +1149,6 @@ zend_function_entry bucket_methods[] = {
 	PHP_ME(Bucket,  get,             NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  getFromReplica,  NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  counter,         NULL, ZEND_ACC_PUBLIC)
-	PHP_ME(Bucket,  flush,           NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  unlock,          NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  http_request,    NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  durability,      NULL, ZEND_ACC_PUBLIC)
