@@ -121,7 +121,7 @@ class CouchbaseBucketManager {
      */
     public function flush() {
         $path = "/pools/default/buckets/" . $this->_name . "/controller/doFlush";
-        $res = $this->_me->http_request(2, 1, $path, NULL, 2);
+        $res = $this->_me->http_request(2, 2, $path, NULL, 2);
         return json_decode($res, true);
     }
 
