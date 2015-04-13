@@ -1261,6 +1261,18 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "    }\n" \
 "\n" \
 "    /**\n" \
+"     * Updates a documents expiry.\n" \
+"     *\n" \
+"     * @param string $id\n" \
+"     * @param integer $expiry\n" \
+"     * @param array $options\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function touch($id, $expiry, $options = array()) {\n" \
+"        return $this->me->touch($id, $expiry, $options);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
 "     * Increment or decrements a key (based on $delta).\n" \
 "     *\n" \
 "     * @param string|array $ids\n" \

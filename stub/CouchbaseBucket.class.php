@@ -234,6 +234,18 @@ class CouchbaseBucket {
     }
 
     /**
+     * Updates a documents expiry.
+     *
+     * @param string $id
+     * @param integer $expiry
+     * @param array $options
+     * @return mixed
+     */
+    public function touch($id, $expiry, $options = array()) {
+        return $this->me->touch($id, $expiry, $options);
+    }
+
+    /**
      * Increment or decrements a key (based on $delta).
      *
      * @param string|array $ids

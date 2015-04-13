@@ -745,6 +745,55 @@ PHP_METHOD(Bucket, remove)
 	efree(cmd);
 }
 
+// touch($id {, $lock, $groupid}) : MetaDoc
+PHP_METHOD(Bucket, touch)
+{
+    bucket_object *data = PHP_THISOBJ();
+    lcb_touch_cmd_t *cmd = NULL;
+    lcb_touch_cmd_t **cmds = NULL;
+    int ii, num_cmds;
+    pcbc_pp_state pp_state;
+    zval *zid, *zexpiry, *zgroupid;
+    bopcookie *cookie;
+
+  // Note that groupid is experimental here and should not be used.
+    pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+                  "id|expiry|groupid",
+                  &zid, &zexpiry, &zgroupid);
+
+    num_cmds = pcbc_pp_keycount(&pp_state);
+    cmd = emalloc(sizeof(lcb_touch_cmd_t) * num_cmds);
+    cmds = emalloc(sizeof(lcb_touch_cmd_t*) * num_cmds);
+    memset(cmd, 0, sizeof(lcb_touch_cmd_t) * num_cmds);
+
+    for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
+        PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
+        PCBC_CHECK_ZVAL(zexpiry, IS_LONG, "expiry must be an integer");
+        PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
+
+        cmd[ii].version = 0;
+        cmd[ii].v.v0.key = Z_STRVAL_P(zid);
+        cmd[ii].v.v0.nkey = Z_STRLEN_P(zid);
+        cmd[ii].v.v0.exptime = Z_LVAL_P(zexpiry);
+        if (zgroupid) {
+            cmd[ii].v.v0.hashkey = Z_STRVAL_P(zgroupid);
+            cmd[ii].v.v0.nhashkey = Z_STRLEN_P(zgroupid);
+        }
+
+        cmds[ii] = &cmd[ii];
+    }
+
+    cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
+
+    lcb_touch(data->conn->lcb, cookie,
+            num_cmds, (const lcb_touch_cmd_t*const*)cmds);
+    pcbc_wait(data TSRMLS_CC);
+
+    bopcookie_destroy(cookie);
+    efree(cmds);
+    efree(cmd);
+}
+
 // get($id {, $lock, $groupid}) : MetaDoc
 PHP_METHOD(Bucket, get)
 {
@@ -1148,6 +1197,7 @@ zend_function_entry bucket_methods[] = {
 	PHP_ME(Bucket,  remove,          NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  get,             NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  getFromReplica,  NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Bucket,  touch,           NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  counter,         NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  unlock,          NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  http_request,    NULL, ZEND_ACC_PUBLIC)
