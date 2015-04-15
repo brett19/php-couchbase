@@ -1032,6 +1032,8 @@ PHP_METHOD(Bucket, http_request)
 		type = LCB_HTTP_TYPE_VIEW;
 	} else if (Z_LVAL_P(ztype) == 2) {
 		type = LCB_HTTP_TYPE_MANAGEMENT;
+	} else if (Z_LVAL_P(ztype) == 3) {
+	    type = LCB_HTTP_TYPE_N1QL;
 	} else {
 		RETURN_NULL();
 	}
@@ -1056,8 +1058,10 @@ PHP_METHOD(Bucket, http_request)
 		RETURN_NULL();
 	}
 
-	cmd.v.v0.path = Z_STRVAL_P(zpath);
-	cmd.v.v0.npath = Z_STRLEN_P(zpath);
+	if (Z_TYPE_P(zpath) == IS_STRING) {
+	    cmd.v.v0.path = Z_STRVAL_P(zpath);
+	    cmd.v.v0.npath = Z_STRLEN_P(zpath);
+	}
 	if (Z_TYPE_P(zbody) == IS_STRING) {
 		cmd.v.v0.body = Z_STRVAL_P(zbody);
 		cmd.v.v0.nbody = Z_STRLEN_P(zbody);
