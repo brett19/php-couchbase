@@ -18,10 +18,10 @@
         <email>brett@couchbase.com</email>
         <active>yes</active>
     </lead>
-    <date>2015-04-07</date>
+    <date>2015-04-22</date>
     <version>
-        <release>2.0.6</release>
-        <api>2.0.6</api>
+        <release>2.0.7</release>
+        <api>2.0.7</api>
     </version>
     <stability>
         <release>stable</release>
@@ -33,12 +33,8 @@
         This is a patch update to the PHP 2.0 SDK.
     
         Changes:
-        * PCBC-331: CouchbaseBucketManager now has a flush operation to clear a bucket.
-        * Orphan: Minor fix to view management return values.
-        * Orphan: ViewQuery::group_level now can be chained as expected.
-        * PCBC-334: PHP 5.4 transcoder compatibility issues have been fixed.
-        * PHP 5.3 support has been deprecated and PHP 5.6 is now fully supported.
-        * Corrected various memory leaks and segfaults.
+        * PCBC-339: Add support for using N1QL with CB Server 4.0.0.
+        * PCBC-343: Added missing touch method to CouchbaseBucket.
     </notes>
     <contents>
         <dir name="/">
@@ -295,6 +291,24 @@
             * PCBC-334: PHP 5.4 transcoder compatibility issues have been fixed.
             * PHP 5.3 support has been deprecated and PHP 5.6 is now fully supported.
             * Corrected various memory leaks and segfaults.
+          </notes>
+        </release>
+        <release>
+          <date>2015-04-22</date>
+          <version>
+            <release>2.0.7</release>
+            <api>2.0.7</api>
+          </version>
+          <stability>
+            <release>stable</release>
+            <api>stable</api>
+          </stability>
+          <notes>
+            This is a patch update to the PHP 2.0 SDK.
+
+            Changes:
+            * PCBC-339: Add support for using N1QL with CB Server 4.0.0.
+            * PCBC-343: Added missing touch method to CouchbaseBucket.
           </notes>
         </release>
     </changelog>
