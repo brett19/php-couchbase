@@ -23,7 +23,7 @@ class CouchbaseCluster {
      * @var string
      * @ignore
      *
-     * A cluster DSN to connect with.
+     * A cluster connection string to connect with.
      */
     private $_dsn;
 
@@ -33,14 +33,14 @@ class CouchbaseCluster {
      * Creates a CouchbaseCluster object and begins the bootstrapping
      * process necessary for communications with the Couchbase Server.
      *
-     * @param string $dsn A cluster DSn to connect with.
+     * @param string $connstr A cluster connection string to connect with.
      * @param string $username The username for the cluster.
      * @param string $password The password for the cluster.
      *
      * @throws CouchbaseException
      */
-    public function __construct($dsn = 'http://127.0.0.1/', $username = '', $password = '') {
-        $this->_dsn = cbdsn_parse($dsn);
+    public function __construct($connstr = 'http://127.0.0.1/', $username = '', $password = '') {
+        $this->_dsn = cbdsn_parse($connstr);
     }
 
     /**

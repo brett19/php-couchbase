@@ -64,14 +64,14 @@ class CouchbaseBucket {
      * @private
      * @ignore
      *
-     * @param string $dsn A cluster DSN to connect with.
+     * @param string $connstr A cluster connection string to connect with.
      * @param string $name The name of the bucket to connect to.
      * @param string $password The password to authenticate with.
      *
      * @private
      */
-    public function __construct($dsn, $name, $password) {
-        $this->me = new _CouchbaseBucket($dsn, $name, $password);
+    public function __construct($connstr, $name, $password) {
+        $this->me = new _CouchbaseBucket($connstr, $name, $password);
         $this->me->setTranscoder("couchbase_default_encoder", "couchbase_default_decoder");
         $this->name = $name;
     }

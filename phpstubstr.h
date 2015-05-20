@@ -895,7 +895,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * @var string\n" \
 "     * @ignore\n" \
 "     *\n" \
-"     * A cluster DSN to connect with.\n" \
+"     * A cluster connection string to connect with.\n" \
 "     */\n" \
 "    private $_dsn;\n" \
 "\n" \
@@ -905,14 +905,14 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * Creates a CouchbaseCluster object and begins the bootstrapping\n" \
 "     * process necessary for communications with the Couchbase Server.\n" \
 "     *\n" \
-"     * @param string $dsn A cluster DSn to connect with.\n" \
+"     * @param string $connstr A cluster connection string to connect with.\n" \
 "     * @param string $username The username for the cluster.\n" \
 "     * @param string $password The password for the cluster.\n" \
 "     *\n" \
 "     * @throws CouchbaseException\n" \
 "     */\n" \
-"    public function __construct($dsn = 'http://127.0.0.1/', $username = '', $password = '') {\n" \
-"        $this->_dsn = cbdsn_parse($dsn);\n" \
+"    public function __construct($connstr = 'http://127.0.0.1/', $username = '', $password = '') {\n" \
+"        $this->_dsn = cbdsn_parse($connstr);\n" \
 "    }\n" \
 "\n" \
 "    /**\n" \
@@ -1124,14 +1124,14 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * @private\n" \
 "     * @ignore\n" \
 "     *\n" \
-"     * @param string $dsn A cluster DSN to connect with.\n" \
+"     * @param string $connstr A cluster connection string to connect with.\n" \
 "     * @param string $name The name of the bucket to connect to.\n" \
 "     * @param string $password The password to authenticate with.\n" \
 "     *\n" \
 "     * @private\n" \
 "     */\n" \
-"    public function __construct($dsn, $name, $password) {\n" \
-"        $this->me = new _CouchbaseBucket($dsn, $name, $password);\n" \
+"    public function __construct($connstr, $name, $password) {\n" \
+"        $this->me = new _CouchbaseBucket($connstr, $name, $password);\n" \
 "        $this->me->setTranscoder(\"couchbase_default_encoder\", \"couchbase_default_decoder\");\n" \
 "        $this->name = $name;\n" \
 "    }\n" \
