@@ -358,6 +358,16 @@ class CouchbaseBucket {
     }
 
     /**
+     * Map a key to a server
+     *
+     * @param string $key
+     * @return integer
+     */
+    public function mapKey($key) {
+        return $this->me->mapKey($key);
+    }
+
+    /**
      * Ensures durability requirements are met for an executed
      *  operation.  Note that this function will automatically
      *  determine the result types and check for any failures.

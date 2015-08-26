@@ -1418,6 +1418,16 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "    }\n" \
 "\n" \
 "    /**\n" \
+"     * Map a key to a server\n" \
+"     *\n" \
+"     * @param string $key\n" \
+"     * @return integer\n" \
+"     */\n" \
+"    public function mapKey($key) {\n" \
+"        return $this->me->mapKey($key);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
 "     * Ensures durability requirements are met for an executed\n" \
 "     *  operation.  Note that this function will automatically\n" \
 "     *  determine the result types and check for any failures.\n" \
