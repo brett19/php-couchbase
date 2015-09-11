@@ -61,6 +61,7 @@ void bopcookie_error(const bopcookie *cookie, bucket_object *data, zval *doc,
 	zval *zerror = create_lcb_exception(error TSRMLS_CC);
 	if (Z_TYPE_P(cookie->retval) == IS_ARRAY) {
 		metadoc_from_error(doc, zerror TSRMLS_CC);
+		zval_ptr_dtor(&zerror);
 	} else {
 		data->error = zerror;
 	}
