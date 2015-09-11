@@ -8,6 +8,7 @@
 #include "cas.h"
 #include "metadoc.h"
 #include "transcoding.h"
+#include <libcouchbase/vbucket.h>
 
 #define PCBC_CHECK_ZVAL(v,t,m) \
 	if (v && Z_TYPE_P(v) != t) { \
@@ -1191,6 +1192,25 @@ PHP_METHOD(Bucket, getOption)
 	RETURN_LONG(lcbval);
 }
 
+PHP_METHOD(Bucket, mapKey)
+{
+	bucket_object *data = PHP_THISOBJ();
+	char *key = NULL;
+	int key_len = 0;
+	int srvix, vbid;
+	int result;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &key, &key_len) == FAILURE) {
+		RETURN_NULL();
+	}
+	VBUCKET_CONFIG_HANDLE conf;
+
+	lcb_cntl(data->conn->lcb, LCB_CNTL_GET, LCB_CNTL_VBCONFIG, &conf);
+	lcbvb_map_key(conf, key, key_len, &vbid, &srvix);
+
+	RETURN_LONG(srvix);
+}
+
 zend_function_entry bucket_methods[] = {
 	PHP_ME(Bucket,  __construct,     NULL, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
 
@@ -1211,6 +1231,8 @@ zend_function_entry bucket_methods[] = {
 	PHP_ME(Bucket,  setTranscoder,   NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  setOption,       NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  getOption,       NULL, ZEND_ACC_PUBLIC)
+
+	PHP_ME(Bucket,  mapKey,          NULL, ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
 
