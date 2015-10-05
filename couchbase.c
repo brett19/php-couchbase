@@ -100,6 +100,14 @@ PHP_MSHUTDOWN_FUNCTION(couchbase)
 	return SUCCESS;
 }
 
+PHP_RSHUTDOWN_FUNCTION(couchbase)
+{
+	if (PG(last_error_message) && PG(last_error_type) == E_ERROR) {
+		couchbase_shutdown_bucket(SHUTDOWN_FUNC_ARGS_PASSTHRU);
+	}
+	return SUCCESS;
+}
+
 PHP_RINIT_FUNCTION(couchbase)
 {
 	
@@ -135,7 +143,7 @@ zend_module_entry couchbase_module_entry = {
 	PHP_MINIT(couchbase),
 	PHP_MSHUTDOWN(couchbase),
 	PHP_RINIT(couchbase),
-	NULL,
+	PHP_RSHUTDOWN(couchbase),
 	NULL,
 #if ZEND_MODULE_API_NO >= 20010901
 	PHP_COUCHBASE_VERSION,
