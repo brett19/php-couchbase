@@ -828,6 +828,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "    static public function fromString($str) {\n" \
 "        $res = new CouchbaseN1qlQuery();\n" \
 "        $res->options['statement'] = $str;\n" \
+"        $res->adhoc = true;\n" \
 "        return $res;\n" \
 "    }\n" \
 "\n" \
@@ -836,7 +837,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     *\n" \
 "     * @param $consistency\n" \
 "     * @return $this\n" \
-"     * @throws CouchbaseException\n" \
+"     * @throws CouchbaseN1qlQuery\n" \
 "     */\n" \
 "    public function consistency($consistency) {\n" \
 "        if ($consistency == self::NOT_BOUNDED) {\n" \
@@ -849,6 +850,18 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "            throw new CouchbaseException('invalid option passed.');\n" \
 "        }\n" \
 "        return $this;\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Specify whether this query is a one-time query, or if it\n" \
+"     *   if it should be prepared.\n" \
+"     *\n" \
+"     * @param $adhoc\n" \
+"     * @return $this\n" \
+"     * @throws CouchbaseN1qlQuery\n" \
+"     */\n" \
+"    public function adhoc($adhoc) {\n" \
+"        $this->adhoc = !!$adhoc;\n" \
 "    }\n" \
 "\n" \
 "    /**\n" \
@@ -1337,16 +1350,16 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     *\n" \
 "     * @internal\n" \
 "     */\n" \
-"    public function _view($queryObj) {\n" \
+"    public function _view($queryObj, $json_asarray) {\n" \
 "        $path = $queryObj->toString();\n" \
 "        $res = $this->me->http_request(1, 1, $path, NULL, 1);\n" \
-"        $out = json_decode($res, true);\n" \
+"        $out = json_decode($res, $json_asarray);\n" \
 "        if (isset($out['error'])) {\n" \
 "            throw new CouchbaseException($out['error'] . ': ' . $out['reason']);\n" \
 "        }\n" \
 "        return $out;\n" \
 "    }\n" \
-"\n" \
+"    \n" \
 "    /**\n" \
 "     * Performs a N1QL query.\n" \
 "     *\n" \
@@ -1356,38 +1369,31 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     *\n" \
 "     * @internal\n" \
 "     */\n" \
-"    public function _n1ql($queryObj) {\n" \
-"        $data = json_encode($queryObj->toObject());\n" \
-"    \n" \
-"        if ($this->queryhosts) {\n" \
-"            $hostidx = array_rand($this->queryhosts, 1);\n" \
-"            $host = $this->queryhosts[$hostidx];\n" \
-"    \n" \
-"            $ch = curl_init();\n" \
-"            curl_setopt($ch, CURLOPT_URL, 'http://' . $host . '/query');\n" \
-"            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);\n" \
-"            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');\n" \
-"            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);\n" \
-"            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\n" \
-"            curl_setopt($ch, CURLOPT_HTTPHEADER, array(\n" \
-"                    'Content-Type: application/json',\n" \
-"                    'Content-Length: ' . strlen($data))\n" \
-"            );\n" \
-"            $res = curl_exec($ch);\n" \
-"            curl_close($ch);\n" \
-"        } else {\n" \
-"            $res = $this->me->http_request(3, 2, NULL, $data, 1);\n" \
+"    public function _n1ql($queryObj, $params, $json_asarray) {\n" \
+"        $data = $queryObj->options;\n" \
+"        if (is_array($params)) {\n" \
+"            foreach ($params as $key => $value) {\n" \
+"                $data['$' + $key] = $value;\n" \
+"            }\n" \
+"        }\n" \
+"        $dataStr = json_encode($data, true);\n" \
+"        $dataOut = $this->me->n1ql_request($dataStr, $queryObj->adhoc);\n" \
+"        \n" \
+"        $meta = json_decode($dataOut['meta'], true);\n" \
+"        if (isset($meta['errors']) && count($meta['errors']) > 0) {\n" \
+"            $err = $meta['errors'][0];\n" \
+"            $ex = new CouchbaseException($err['msg']);\n" \
+"            $ex->qCode = $err['code'];\n" \
+"            throw $ex;\n" \
 "        }\n" \
 "        \n" \
-"        $resjson = json_decode($res, true);\n" \
-"\n" \
-"        if (isset($resjson['errors'])) {\n" \
-"            throw new CouchbaseException($resjson['errors'][0]['msg'], 999);\n" \
+"        $rows = array();\n" \
+"        foreach ($dataOut['results'] as $row) {\n" \
+"            $rows[] = json_decode($row, $json_asarray);\n" \
 "        }\n" \
-"\n" \
-"        return $resjson['results'];\n" \
+"        return $rows;\n" \
 "    }\n" \
-"\n" \
+"    \n" \
 "    /**\n" \
 "     * Performs a query (either ViewQuery or N1qlQuery).\n" \
 "     *\n" \
@@ -1395,12 +1401,12 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * @return mixed\n" \
 "     * @throws CouchbaseException\n" \
 "     */\n" \
-"    public function query($query) {\n" \
+"    public function query($query, $params = null, $json_asarray = false) {\n" \
 "        if ($query instanceof _CouchbaseDefaultViewQuery ||\n" \
 "            $query instanceof _CouchbaseSpatialViewQuery) {\n" \
-"            return $this->_view($query);\n" \
+"            return $this->_view($query, $json_asarray);\n" \
 "        } else if ($query instanceof CouchbaseN1qlQuery) {\n" \
-"            return $this->_n1ql($query);\n" \
+"            return $this->_n1ql($query, $params, $json_asarray);\n" \
 "        } else {\n" \
 "            throw new CouchbaseException(\n" \
 "                'Passed object must be of type ViewQuery or N1qlQuery');\n" \

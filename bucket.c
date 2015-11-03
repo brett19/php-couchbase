@@ -200,6 +200,31 @@ static void touch_callback(lcb_t instance, const void *cookie,
 	}
 }
 
+static void n1qlrow_callback(lcb_t instance, int ignoreme,
+        const lcb_RESPN1QL *resp)
+{
+    bopcookie *op = (bopcookie*)resp->cookie;
+    bucket_object *data = op->owner;
+    zval *doc = bopcookie_get_doc(op, NULL, 0);
+    zval **results, *rowdata;
+    TSRMLS_FETCH();
+
+    if (resp->rflags & LCB_RESP_F_FINAL)
+    {
+        MAKE_STD_ZVAL(rowdata);
+        ZVAL_STRINGL(rowdata, resp->row, resp->nrow, 1);
+
+        add_assoc_zval(doc, "meta", rowdata);
+        return;
+    }
+
+    zend_hash_find(Z_ARRVAL_P(doc), "results", 8, (void**)&results);
+
+    MAKE_STD_ZVAL(rowdata);
+    ZVAL_STRINGL(rowdata, resp->row, resp->nrow, 1);
+    add_next_index_zval(*results, rowdata);
+}
+
 static void http_complete_callback(lcb_http_request_t request, lcb_t instance,
 			const void *cookie, lcb_error_t error,
 			const lcb_http_resp_t *resp) {
@@ -1014,6 +1039,48 @@ PHP_METHOD(Bucket, counter)
 	efree(cmd);
 }
 
+PHP_METHOD(Bucket, n1ql_request)
+{
+    bucket_object *data = PHP_THISOBJ();
+    lcb_CMDN1QL cmd = { 0 };
+    bopcookie *cookie;
+    zval *zbody, *zadhoc;
+    zval *zResults;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz",
+                &zbody, &zadhoc) == FAILURE) {
+        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+        RETURN_NULL();
+    }
+
+    PCBC_CHECK_ZVAL(zbody, IS_STRING, "body must be a string");
+    PCBC_CHECK_ZVAL(zadhoc, IS_BOOL, "adhoc must be a bool");
+
+    cmd.callback = n1qlrow_callback;
+    cmd.content_type = "application/json";
+    cmd.query = Z_STRVAL_P(zbody);
+    cmd.nquery = Z_STRLEN_P(zbody);
+
+    if (Z_BVAL_P(zadhoc) == 0) {
+        cmd.cmdflags |= LCB_CMDN1QL_F_PREPCACHE;
+    }
+
+    cookie = bopcookie_init(data, return_value, 0);
+
+    // Setup basic structure
+    MAKE_STD_ZVAL(zResults);
+    array_init(zResults);
+
+    array_init(return_value);
+    add_assoc_zval(return_value, "results", zResults);
+
+    // Execute query
+    lcb_n1ql_query(data->conn->lcb, cookie, &cmd);
+    pcbc_wait(data TSRMLS_CC);
+
+    bopcookie_destroy(cookie);
+}
+
 PHP_METHOD(Bucket, http_request)
 {
 	bucket_object *data = PHP_THISOBJ();
@@ -1205,6 +1272,7 @@ zend_function_entry bucket_methods[] = {
 	PHP_ME(Bucket,  touch,           NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  counter,         NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  unlock,          NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Bucket,  n1ql_request,    NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  http_request,    NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Bucket,  durability,      NULL, ZEND_ACC_PUBLIC)
 
