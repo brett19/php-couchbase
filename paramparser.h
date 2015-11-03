@@ -123,13 +123,10 @@ int pcbc_pp_begin(int param_count TSRMLS_DC, pcbc_pp_state *state, const char *s
         }
     }
 
-    if (Z_TYPE_P(state->zids) == IS_STRING) {
-        // Good to Go
-    } else if (Z_TYPE_P(state->zids) == IS_ARRAY) {
+    if (Z_TYPE_P(state->zids) == IS_ARRAY) {
+        // If this is an array, make sure its internal pointer is the start.
         HashTable *hash = Z_ARRVAL_P(state->zids);
         zend_hash_internal_pointer_reset_ex(hash, &state->hash_pos);
-    } else {
-        // Error probably
     }
 
     return SUCCESS;
@@ -158,14 +155,7 @@ int pcbc_pp_next(pcbc_pp_state *state) {
         *(state->args[ii].ptr) = state->args[ii].val;
     }
 
-    if (Z_TYPE_P(state->zids) == IS_STRING) {
-        if (state->cur_idx > 0) {
-            return 0;
-        }
-        *(state->args[0].ptr) = state->zids;
-        state->cur_idx++;
-        return 1;
-    } else if (Z_TYPE_P(state->zids) == IS_ARRAY) {
+    if (Z_TYPE_P(state->zids) == IS_ARRAY) {
         HashTable *hash = Z_ARRVAL_P(state->zids);
         zval **data;
         char *keystr;
@@ -200,6 +190,13 @@ int pcbc_pp_next(pcbc_pp_state *state) {
         }
 
         zend_hash_move_forward_ex(hash, &state->hash_pos);
+        return 1;
+    } else {
+        if (state->cur_idx > 0) {
+            return 0;
+        }
+        *(state->args[0].ptr) = state->zids;
+        state->cur_idx++;
         return 1;
     }
 
