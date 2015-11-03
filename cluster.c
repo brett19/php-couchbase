@@ -106,6 +106,7 @@ PHP_METHOD(Cluster, __construct)
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|zzz",
 			&zdsn, &zname, &zpassword) == FAILURE) {
+	    throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
 		RETURN_NULL();
 	}
 
@@ -194,6 +195,7 @@ PHP_METHOD(Cluster, http_request)
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzzzz",
 				&ztype, &zmethod, &zpath, &zbody, &zcontenttype) == FAILURE) {
+	    throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
 		RETURN_NULL();
 	}
 
@@ -202,6 +204,7 @@ PHP_METHOD(Cluster, http_request)
 	} else if (Z_LVAL_P(ztype) == 2) {
 		type = LCB_HTTP_TYPE_MANAGEMENT;
 	} else {
+	    throw_pcbc_exception("Invalid type.", LCB_EINVAL);
 		RETURN_NULL();
 	}
 
@@ -214,6 +217,7 @@ PHP_METHOD(Cluster, http_request)
 	} else if (Z_LVAL_P(zmethod) == 4) {
 		method = LCB_HTTP_METHOD_DELETE;
 	} else {
+	    throw_pcbc_exception("Invalid method.", LCB_EINVAL);
 		RETURN_NULL();
 	}
 
@@ -222,6 +226,7 @@ PHP_METHOD(Cluster, http_request)
 	} else if (Z_LVAL_P(zcontenttype) == 2) {
 		contenttype = "application/x-www-form-urlencoded";
 	} else {
+	    throw_pcbc_exception("Invalid content-type.", LCB_EINVAL);
 		RETURN_NULL();
 	}
 

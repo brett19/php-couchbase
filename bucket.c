@@ -420,8 +420,13 @@ PHP_METHOD(Bucket, insert)
 	bopcookie *cookie;
 
   // Note that groupid is experimental here and should not be used.
-	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id|value|expiry,flags,groupid",
-				  &zid, &zvalue, &zexpiry, &zflags, &zgroupid);
+	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+	              "id|value|expiry,flags,groupid",
+				  &zid, &zvalue, &zexpiry, &zflags, &zgroupid) != SUCCESS)
+	{
+        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+        RETURN_NULL();
+    }
 
 	num_cmds = pcbc_pp_keycount(&pp_state);
 	cmd = emalloc(sizeof(lcb_store_cmd_t) * num_cmds);
@@ -482,8 +487,13 @@ PHP_METHOD(Bucket, upsert)
 	bopcookie *cookie;
 
   // Note that groupid is experimental here and should not be used.
-	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id|value|expiry,flags,groupid",
-				  &zid, &zvalue, &zexpiry, &zflags, &zgroupid);
+	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+	              "id|value|expiry,flags,groupid",
+				  &zid, &zvalue, &zexpiry, &zflags, &zgroupid) != SUCCESS)
+	{
+	    throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+	    RETURN_NULL();
+	}
 
 	num_cmds = pcbc_pp_keycount(&pp_state);
 	cmd = emalloc(sizeof(lcb_store_cmd_t) * num_cmds);
@@ -544,8 +554,13 @@ PHP_METHOD(Bucket, replace)
 	bopcookie *cookie;
 
   // Note that groupid is experimental here and should not be used.
-	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id|value|cas,expiry,flags,groupid",
-				  &zid, &zvalue, &zcas, &zexpiry, &zflags, &zgroupid);
+	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+	              "id|value|cas,expiry,flags,groupid",
+				  &zid, &zvalue, &zcas, &zexpiry, &zflags, &zgroupid) != SUCCESS)
+    {
+        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+        RETURN_NULL();
+    }
 
 	num_cmds = pcbc_pp_keycount(&pp_state);
 	cmd = emalloc(sizeof(lcb_store_cmd_t) * num_cmds);
@@ -610,8 +625,12 @@ PHP_METHOD(Bucket, append)
 	bopcookie *cookie;
 
   // Note that groupid is experimental here and should not be used.
-	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id|value|cas,groupid",
-				  &zid, &zvalue, &zcas, &zgroupid);
+	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id|value|cas,groupid",
+				  &zid, &zvalue, &zcas, &zgroupid) != SUCCESS)
+    {
+        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+        RETURN_NULL();
+    }
 
 	num_cmds = pcbc_pp_keycount(&pp_state);
 	cmd = emalloc(sizeof(lcb_store_cmd_t) * num_cmds);
@@ -671,8 +690,13 @@ PHP_METHOD(Bucket, prepend)
 	bopcookie *cookie;
 
   // Note that groupid is experimental here and should not be used.
-	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id|value|cas,groupid",
-				  &zid, &zvalue, &zcas, &zgroupid);
+	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+	              "id|value|cas,groupid",
+				  &zid, &zvalue, &zcas, &zgroupid) != SUCCESS)
+    {
+        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+        RETURN_NULL();
+    }
 
 	num_cmds = pcbc_pp_keycount(&pp_state);
 	cmd = emalloc(sizeof(lcb_store_cmd_t) * num_cmds);
@@ -732,8 +756,12 @@ PHP_METHOD(Bucket, remove)
 	zval *zid, *zcas, *zgroupid;
 
   // Note that groupid is experimental here and should not be used.
-	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id||cas,groupid",
-				  &zid, &zcas, &zgroupid);
+	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id||cas,groupid",
+				  &zid, &zcas, &zgroupid) != SUCCESS)
+    {
+        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+        RETURN_NULL();
+    }
 
 	num_cmds = pcbc_pp_keycount(&pp_state);
 	cmd = emalloc(sizeof(lcb_remove_cmd_t) * num_cmds);
@@ -783,9 +811,13 @@ PHP_METHOD(Bucket, touch)
     bopcookie *cookie;
 
   // Note that groupid is experimental here and should not be used.
-    pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+    if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
                   "id|expiry|groupid",
-                  &zid, &zexpiry, &zgroupid);
+                  &zid, &zexpiry, &zgroupid) != SUCCESS)
+    {
+        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+        RETURN_NULL();
+    }
 
     num_cmds = pcbc_pp_keycount(&pp_state);
     cmd = emalloc(sizeof(lcb_touch_cmd_t) * num_cmds);
@@ -832,9 +864,13 @@ PHP_METHOD(Bucket, get)
 	bopcookie *cookie;
 
   // Note that groupid is experimental here and should not be used.
-	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
 				  "id||lockTime,expiry,groupid",
-				  &zid, &zlock, &zexpiry, &zgroupid);
+				  &zid, &zlock, &zexpiry, &zgroupid) != SUCCESS)
+    {
+        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+        RETURN_NULL();
+    }
 
 	num_cmds = pcbc_pp_keycount(&pp_state);
 	cmd = emalloc(sizeof(lcb_get_cmd_t) * num_cmds);
@@ -888,9 +924,13 @@ PHP_METHOD(Bucket, getFromReplica)
 	bopcookie *cookie;
 
 	// Note that groupid is experimental here and should not be used.
-	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
 				  "id||index,groupid",
-				  &zid, &zindex, &zgroupid);
+				  &zid, &zindex, &zgroupid) != SUCCESS)
+    {
+        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+        RETURN_NULL();
+    }
 
 	num_cmds = pcbc_pp_keycount(&pp_state);
 	cmd = emalloc(sizeof(lcb_get_replica_cmd_t) * num_cmds);
@@ -944,8 +984,13 @@ PHP_METHOD(Bucket, unlock)
 	bopcookie *cookie;
 
   // Note that groupid is experimental here and should not be used.
-	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id||cas,groupid",
-				  &zid, &zcas, &zgroupid);
+	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+	              "id||cas,groupid",
+				  &zid, &zcas, &zgroupid) != SUCCESS)
+    {
+        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+        RETURN_NULL();
+    }
 
 	num_cmds = pcbc_pp_keycount(&pp_state);
 	cmd = emalloc(sizeof(lcb_unlock_cmd_t) * num_cmds);
@@ -994,8 +1039,13 @@ PHP_METHOD(Bucket, counter)
 	bopcookie *cookie;
 
   // Note that groupid is experimental here and should not be used.
-	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id|delta|initial,expiry,groupid",
-				  &zid, &zdelta, &zinitial, &zexpiry, &zgroupid);
+	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+	              "id|delta|initial,expiry,groupid",
+				  &zid, &zdelta, &zinitial, &zexpiry, &zgroupid) != SUCCESS)
+    {
+        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+        RETURN_NULL();
+    }
 
 	num_cmds = pcbc_pp_keycount(&pp_state);
 	cmd = emalloc(sizeof(lcb_arithmetic_cmd_t) * num_cmds);
@@ -1093,6 +1143,7 @@ PHP_METHOD(Bucket, http_request)
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzzzz",
 				&ztype, &zmethod, &zpath, &zbody, &zcontenttype) == FAILURE) {
+	    throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
 		RETURN_NULL();
 	}
 
@@ -1158,8 +1209,13 @@ PHP_METHOD(Bucket, durability)
 	zval *zid, *zcas, *zgroupid, *zpersist, *zreplica;
 	bopcookie *cookie;
 
-	pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id||cas,groupid,persist_to,replicate_to",
-				  &zid, &zcas, &zgroupid, &zpersist, &zreplica);
+	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+	              "id||cas,groupid,persist_to,replicate_to",
+				  &zid, &zcas, &zgroupid, &zpersist, &zreplica) != SUCCESS)
+    {
+        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+        RETURN_NULL();
+    }
 
 	num_cmds = pcbc_pp_keycount(&pp_state);
 	cmd = emalloc(sizeof(lcb_durability_cmd_t) * num_cmds);
