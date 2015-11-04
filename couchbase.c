@@ -1,9 +1,15 @@
-# include <zlib.h>
-#include "fastlz/fastlz.h"
 #include "couchbase.h"
 #include "cas.h"
 #include "metadoc.h"
 #include "phpstubstr.h"
+#include "fastlz/fastlz.h"
+
+#if HAVE_ZLIB
+#include <zlib.h>
+#endif
+
+typedef unsigned char uint8_t;
+typedef unsigned int uint32_t;
 
 ZEND_DECLARE_MODULE_GLOBALS(couchbase)
 
@@ -127,6 +133,7 @@ PHP_RINIT_FUNCTION(couchbase)
 
 PHP_FUNCTION(couchbase_zlib_compress)
 {
+#if HAVE_ZLIB
     zval *zdata;
     void *dataIn, *dataOut;
     unsigned long dataSize, dataOutSize;
@@ -140,14 +147,19 @@ PHP_FUNCTION(couchbase_zlib_compress)
     dataSize = Z_STRLEN_P(zdata);
     dataOutSize = compressBound(dataSize);
     dataOut = emalloc(dataOutSize);
-    compress(&dataOut[4], &dataOutSize, dataIn, dataSize);
+    compress((uint8_t*)dataOut + 4, &dataOutSize, dataIn, dataSize);
     *(uint32_t*)dataOut = dataSize;
 
     RETURN_STRINGL(dataOut, 4 + dataOutSize, 0);
+#else
+    zend_throw_exception(NULL, "The zlib library was not available when the couchbase extension was built.", 0 TSRMLS_CC);
+    RETURN_NULL();
+#endif
 }
 
 PHP_FUNCTION(couchbase_zlib_decompress)
 {
+#if HAVE_ZLIB
     zval *zdata;
     void *dataIn, *dataOut;
     unsigned long dataSize, dataOutSize;
@@ -161,9 +173,13 @@ PHP_FUNCTION(couchbase_zlib_decompress)
     dataSize = Z_STRLEN_P(zdata);
     dataOutSize = *(uint32_t*)dataIn;
     dataOut = emalloc(dataOutSize);
-    uncompress(dataOut, &dataOutSize, &dataIn[4], dataSize - 4);
+    uncompress(dataOut, &dataOutSize, (uint8_t*)dataIn + 4, dataSize - 4);
 
     RETURN_STRINGL(dataOut, dataOutSize, 0);
+#else
+    zend_throw_exception(NULL, "The zlib library was not available when the couchbase extension was built.", 0 TSRMLS_CC);
+    RETURN_NULL();
+#endif
 }
 
 PHP_FUNCTION(couchbase_fastlz_compress)
@@ -181,7 +197,7 @@ PHP_FUNCTION(couchbase_fastlz_compress)
     dataSize = Z_STRLEN_P(zdata);
     dataOutSize = 4 + (dataSize * 1.05);
     dataOut = emalloc(dataOutSize);
-    dataOutSize = fastlz_compress(dataIn, dataSize, &dataOut[4]);
+    dataOutSize = fastlz_compress(dataIn, dataSize, (uint8_t*)dataOut + 4);
     *(uint32_t*)dataOut = dataSize;
 
     RETURN_STRINGL(dataOut, 4 + dataOutSize, 0);
@@ -203,7 +219,7 @@ PHP_FUNCTION(couchbase_fastlz_decompress)
     dataOutSize = *(uint32_t*)dataIn;
     dataOut = emalloc(dataOutSize);
     dataOutSize = fastlz_decompress(
-            &dataIn[4], dataSize - 4, dataOut, dataOutSize);
+            (uint8_t*)dataIn + 4, dataSize - 4, dataOut, dataOutSize);
 
     RETURN_STRINGL(dataOut, dataOutSize, 0);
 }
