@@ -39,6 +39,7 @@
     <contents>
         <dir name="/">
             <file role="doc" name="LICENSE"/>
+            <file role="doc" name="fastlz/LICENSE.txt"/>
             <file role="doc" name="README.md"/>
             <file role="src" name="config.m4"/>
             <file role="src" name="config.w32"/>
@@ -61,6 +62,8 @@
             <file role="src" name="transcoding.c"/>
             <file role="src" name="transcoding.h"/>
             <file role="src" name="phpstubstr.h"/>
+            <file role="src" name="fastlz/fastlz.h"/>
+            <file role="src" name="fastlz/fastlz.c"/>
         </dir>
     </contents>
     <dependencies>
