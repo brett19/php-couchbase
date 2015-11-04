@@ -22,5 +22,6 @@ if test "$PHP_COUCHBASE" = "yes"; then
 	exception.c \
 	metadoc.c \
 	transcoding.c \
+	fastlz/fastlz.c \
   , $ext_shared)
 fi

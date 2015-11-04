@@ -330,10 +330,10 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "        $cmprflags = COUCHBASE_COMPRESSION_NONE;\n" \
 "\n" \
 "        if ($cmprtype == COUCHBASE_CMPRTYPE_ZLIB) {\n" \
-"            $cmprdata = gzencode($data);\n" \
+"            $cmprdata = couchbase_zlib_compress($data);\n" \
 "            $cmprflags = COUCHBASE_COMPRESSION_ZLIB;\n" \
 "        } else if ($cmprtype == COUCHBASE_CMPRTYPE_FASTLZ) {\n" \
-"            $cmprdata = fastlz_compress($data);\n" \
+"            $cmprdata = couchbase_fastlz_compress($data);\n" \
 "            $cmprflags = COUCHBASE_COMPRESSION_FASTLZ;\n" \
 "        }\n" \
 "\n" \
@@ -383,9 +383,9 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "        }\n" \
 "    } else {\n" \
 "        if ($cmprtype == COUCHBASE_COMPRESSION_ZLIB) {\n" \
-"            $bytes = gzdecode($bytes);\n" \
+"            $bytes = couchbase_zlib_decompress($bytes);\n" \
 "        } else if ($cmprtype == COUCHBASE_COMPRESSION_FASTLZ) {\n" \
-"            $data = fastlz_decompress($bytes);\n" \
+"            $data = couchbase_fastlz_decompress($bytes);\n" \
 "        }\n" \
 "\n" \
 "        $retval = NULL;\n" \

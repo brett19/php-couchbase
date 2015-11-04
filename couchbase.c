@@ -1,3 +1,5 @@
+# include <zlib.h>
+#include "fastlz/fastlz.h"
 #include "couchbase.h"
 #include "cas.h"
 #include "metadoc.h"
@@ -123,6 +125,97 @@ PHP_RINIT_FUNCTION(couchbase)
 	return SUCCESS;
 }
 
+PHP_FUNCTION(couchbase_zlib_compress)
+{
+    zval *zdata;
+    void *dataIn, *dataOut;
+    unsigned long dataSize, dataOutSize;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+            "z", &zdata) == FAILURE) {
+        RETURN_NULL();
+    }
+
+    dataIn = Z_STRVAL_P(zdata);
+    dataSize = Z_STRLEN_P(zdata);
+    dataOutSize = compressBound(dataSize);
+    dataOut = emalloc(dataOutSize);
+    compress(&dataOut[4], &dataOutSize, dataIn, dataSize);
+    *(uint32_t*)dataOut = dataSize;
+
+    RETURN_STRINGL(dataOut, 4 + dataOutSize, 0);
+}
+
+PHP_FUNCTION(couchbase_zlib_decompress)
+{
+    zval *zdata;
+    void *dataIn, *dataOut;
+    unsigned long dataSize, dataOutSize;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+            "z", &zdata) == FAILURE) {
+        RETURN_NULL();
+    }
+
+    dataIn = Z_STRVAL_P(zdata);
+    dataSize = Z_STRLEN_P(zdata);
+    dataOutSize = *(uint32_t*)dataIn;
+    dataOut = emalloc(dataOutSize);
+    uncompress(dataOut, &dataOutSize, &dataIn[4], dataSize - 4);
+
+    RETURN_STRINGL(dataOut, dataOutSize, 0);
+}
+
+PHP_FUNCTION(couchbase_fastlz_compress)
+{
+    zval *zdata;
+    void *dataIn, *dataOut;
+    unsigned long dataSize, dataOutSize;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+            "z", &zdata) == FAILURE) {
+        RETURN_NULL();
+    }
+
+    dataIn = Z_STRVAL_P(zdata);
+    dataSize = Z_STRLEN_P(zdata);
+    dataOutSize = 4 + (dataSize * 1.05);
+    dataOut = emalloc(dataOutSize);
+    dataOutSize = fastlz_compress(dataIn, dataSize, &dataOut[4]);
+    *(uint32_t*)dataOut = dataSize;
+
+    RETURN_STRINGL(dataOut, 4 + dataOutSize, 0);
+}
+
+PHP_FUNCTION(couchbase_fastlz_decompress)
+{
+    zval *zdata;
+    void *dataIn, *dataOut;
+    unsigned long dataSize, dataOutSize;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+            "z", &zdata) == FAILURE) {
+        RETURN_NULL();
+    }
+
+    dataIn = Z_STRVAL_P(zdata);
+    dataSize = Z_STRLEN_P(zdata);
+    dataOutSize = *(uint32_t*)dataIn;
+    dataOut = emalloc(dataOutSize);
+    dataOutSize = fastlz_decompress(
+            &dataIn[4], dataSize - 4, dataOut, dataOutSize);
+
+    RETURN_STRINGL(dataOut, dataOutSize, 0);
+}
+
+static zend_function_entry couchbase_functions[] = {
+    PHP_FE(couchbase_fastlz_compress, NULL)
+    PHP_FE(couchbase_fastlz_decompress, NULL)
+    PHP_FE(couchbase_zlib_compress, NULL)
+    PHP_FE(couchbase_zlib_decompress, NULL)
+    {NULL, NULL, NULL}
+};
+
 #if ZEND_MODULE_API_NO >= 220050617
 static zend_module_dep php_couchbase_deps[] = {
 		ZEND_MODULE_REQUIRED("json"),
@@ -139,7 +232,7 @@ zend_module_entry couchbase_module_entry = {
 	STANDARD_MODULE_HEADER,
 #endif
 	PHP_COUCHBASE_EXTNAME,
-	NULL,
+	couchbase_functions,
 	PHP_MINIT(couchbase),
 	PHP_MSHUTDOWN(couchbase),
 	PHP_RINIT(couchbase),

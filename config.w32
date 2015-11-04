@@ -8,7 +8,8 @@ if (PHP_COUCHBASE != "no") {
 		"couchbase.c " + 
 		"exception.c " +
 		"metadoc.c " +
-		"transcoding.c ";
+		"transcoding.c " +
+		"fastlz/fastlz.c ";
 	
 	if (CHECK_LIB("libcouchbase.lib", "couchbase", PHP_COUCHBASE) &&
 			CHECK_HEADER_ADD_INCLUDE("libcouchbase\\couchbase.h", "CFLAGS_COUCHBASE", PHP_COUCHBASE+"\\include;"+PHP_PHP_BUILD+"\\include\\libcouchbase")){

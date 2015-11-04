@@ -96,10 +96,10 @@ function couchbase_basic_encoder_v1($value, $options) {
         $cmprflags = COUCHBASE_COMPRESSION_NONE;
 
         if ($cmprtype == COUCHBASE_CMPRTYPE_ZLIB) {
-            $cmprdata = gzencode($data);
+            $cmprdata = couchbase_zlib_compress($data);
             $cmprflags = COUCHBASE_COMPRESSION_ZLIB;
         } else if ($cmprtype == COUCHBASE_CMPRTYPE_FASTLZ) {
-            $cmprdata = fastlz_compress($data);
+            $cmprdata = couchbase_fastlz_compress($data);
             $cmprflags = COUCHBASE_COMPRESSION_FASTLZ;
         }
 
@@ -149,9 +149,9 @@ function couchbase_basic_decoder_v1($bytes, $flags, $datatype, $options) {
         }
     } else {
         if ($cmprtype == COUCHBASE_COMPRESSION_ZLIB) {
-            $bytes = gzdecode($bytes);
+            $bytes = couchbase_zlib_decompress($bytes);
         } else if ($cmprtype == COUCHBASE_COMPRESSION_FASTLZ) {
-            $data = fastlz_decompress($bytes);
+            $data = couchbase_fastlz_decompress($bytes);
         }
 
         $retval = NULL;
