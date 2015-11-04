@@ -18,10 +18,10 @@
         <email>brett@couchbase.com</email>
         <active>yes</active>
     </lead>
-    <date>2015-04-22</date>
+    <date>2015-11-04</date>
     <version>
-        <release>2.0.7</release>
-        <api>2.0.7</api>
+        <release>2.1.0</release>
+        <api>2.1.0</api>
     </version>
     <stability>
         <release>stable</release>
@@ -30,11 +30,13 @@
     <license uri="http://www.apache.org/licenses/LICENSE-2.0">Apache V2
     </license>
     <notes>
-        This is a patch update to the PHP 2.0 SDK.
+        This is a minor update to the PHP 2.1 SDK.
     
         Changes:
-        * PCBC-339: Add support for using N1QL with CB Server 4.0.0.
-        * PCBC-343: Added missing touch method to CouchbaseBucket.
+        * PCBC-356: Added support for N1QL prepared statements.
+        * PCBC-363: Fix issue related to passing invalid ID arguments.
+        * PCBC-366: Correct issue with legacy transcoder compression.
+        * Various minor changes
     </notes>
     <contents>
         <dir name="/">
@@ -313,6 +315,26 @@
             * PCBC-339: Add support for using N1QL with CB Server 4.0.0.
             * PCBC-343: Added missing touch method to CouchbaseBucket.
           </notes>
+        </release>
+        <release>
+            <date>2015-11-04</date>
+            <version>
+                <release>2.1.0</release>
+                <api>2.1.0</api>
+            </version>
+            <stability>
+                <release>stable</release>
+                <api>stable</api>
+            </stability>
+            <notes>
+                This is a minor update to the PHP SDK.
+            
+                Changes:
+                * PCBC-356: Added support for N1QL prepared statements.
+                * PCBC-363: Fix issue related to passing invalid ID arguments.
+                * PCBC-366: Correct issue with legacy transcoder compression.
+                * Various minor changes
+            </notes>
         </release>
     </changelog>
 </package>
