@@ -281,8 +281,14 @@ class CouchbaseBucket {
         $path = $queryObj->toString();
         $res = $this->me->http_request(1, 1, $path, NULL, 1);
         $out = json_decode($res, $json_asarray);
-        if (isset($out['error'])) {
-            throw new CouchbaseException($out['error'] . ': ' . $out['reason']);
+        if ($json_asarray) {
+            if (isset($out['error'])) {
+                throw new CouchbaseException($out['error'] . ': ' . $out['reason']);
+            }
+        } else {
+            if (isset($out->error)) {
+                throw new CouchbaseException($out->error . ': ' . $out->reason);
+            }
         }
         return $out;
     }
