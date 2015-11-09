@@ -1354,8 +1354,14 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "        $path = $queryObj->toString();\n" \
 "        $res = $this->me->http_request(1, 1, $path, NULL, 1);\n" \
 "        $out = json_decode($res, $json_asarray);\n" \
-"        if (isset($out['error'])) {\n" \
-"            throw new CouchbaseException($out['error'] . ': ' . $out['reason']);\n" \
+"        if ($json_asarray) {\n" \
+"            if (isset($out['error'])) {\n" \
+"                throw new CouchbaseException($out['error'] . ': ' . $out['reason']);\n" \
+"            }\n" \
+"        } else {\n" \
+"            if (isset($out->error)) {\n" \
+"                throw new CouchbaseException($out->error . ': ' . $out->reason);\n" \
+"            }\n" \
 "        }\n" \
 "        return $out;\n" \
 "    }\n" \
