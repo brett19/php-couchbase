@@ -586,11 +586,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     */\n" \
 "    public function _toString($type) {\n" \
 "        $path = '/_design/' . $this->ddoc . '/' . $type . '/' . $this->name;\n" \
-"        $args = array();\n" \
-"        foreach ($this->options as $option => $value) {\n" \
-"            array_push($args, $option . '=' . urlencode($value));\n" \
-"        }\n" \
-"        $path .= '?' . implode('&', $args);\n" \
+"        $path .= '?' . http_build_query($this->options);\n" \
 "        return $path;\n" \
 "    }\n" \
 "};\n" \

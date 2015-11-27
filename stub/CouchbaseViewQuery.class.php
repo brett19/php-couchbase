@@ -133,11 +133,7 @@ class CouchbaseViewQuery {
      */
     public function _toString($type) {
         $path = '/_design/' . $this->ddoc . '/' . $type . '/' . $this->name;
-        $args = array();
-        foreach ($this->options as $option => $value) {
-            array_push($args, $option . '=' . urlencode($value));
-        }
-        $path .= '?' . implode('&', $args);
+        $path .= '?' . http_build_query($this->options);
         return $path;
     }
 };
