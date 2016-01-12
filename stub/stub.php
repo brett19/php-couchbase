@@ -16,3 +16,4 @@ require_once('CouchbaseCluster.class.php');
 require_once('CouchbaseClusterManager.class.php');
 require_once('CouchbaseBucket.class.php');
 require_once('CouchbaseBucketManager.class.php');
+require_once('CouchbaseResult.class.php');

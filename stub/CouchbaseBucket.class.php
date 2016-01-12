@@ -134,6 +134,7 @@ class CouchbaseBucket {
             $this->me->upsert($ids, $val, $options));
     }
 
+
     /**
      * Replaces a document.
      *
@@ -146,7 +147,7 @@ class CouchbaseBucket {
         return $this->_endure($ids, $options,
             $this->me->replace($ids, $val, $options));
     }
-    
+
     /**
      * Appends content to a document.
      *
@@ -159,7 +160,7 @@ class CouchbaseBucket {
         return $this->_endure($ids, $options,
             $this->me->append($ids, $val, $options));
     }
-    
+
     /**
      * Prepends content to a document.
      *
@@ -292,7 +293,7 @@ class CouchbaseBucket {
         }
         return $out;
     }
-    
+
     /**
      * Performs a N1QL query.
      *
@@ -311,7 +312,7 @@ class CouchbaseBucket {
         }
         $dataStr = json_encode($data, true);
         $dataOut = $this->me->n1ql_request($dataStr, $queryObj->adhoc);
-        
+
         $meta = json_decode($dataOut['meta'], true);
         if (isset($meta['errors']) && count($meta['errors']) > 0) {
             $err = $meta['errors'][0];
@@ -319,27 +320,27 @@ class CouchbaseBucket {
             $ex->qCode = $err['code'];
             throw $ex;
         }
-        
+
         $rows = array();
         foreach ($dataOut['results'] as $row) {
             $rows[] = json_decode($row, $json_asarray);
         }
         return $rows;
     }
-    
+
     /**
      * Performs a query (either ViewQuery or N1qlQuery).
      *
      * @param CouchbaseQuery $query
-     * @return mixed
+     * @return CouchbaseResult
      * @throws CouchbaseException
      */
     public function query($query, $params = null, $json_asarray = false) {
         if ($query instanceof _CouchbaseDefaultViewQuery ||
             $query instanceof _CouchbaseSpatialViewQuery) {
-            return $this->_view($query, $json_asarray);
+            return new CouchbaseResult($this->_view($query, $json_asarray));
         } else if ($query instanceof CouchbaseN1qlQuery) {
-            return $this->_n1ql($query, $params, $json_asarray);
+            return new CouchbaseResult($this->_n1ql($query, $params, $json_asarray));
         } else {
             throw new CouchbaseException(
                 'Passed object must be of type ViewQuery or N1qlQuery');
@@ -410,7 +411,7 @@ class CouchbaseBucket {
                 'persist_to' => $options['persist_to'],
                 'replicate_to' => $options['replicate_to']
             ));
-            
+
             return $res;
         }
     }
