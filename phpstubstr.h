@@ -1346,7 +1346,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * Executes a view query.\n" \
 "     *\n" \
 "     * @param ViewQuery $queryObj\n" \
-"     * @return mixed\n" \
+"     * @return CouchbaseResult\n" \
 "     * @throws CouchbaseException\n" \
 "     *\n" \
 "     * @internal\n" \
@@ -1359,19 +1359,25 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "            if (isset($out['error'])) {\n" \
 "                throw new CouchbaseException($out['error'] . ': ' . $out['reason']);\n" \
 "            }\n" \
+"\n" \
+"            $rows = $out['rows'];\n" \
+"            $total = $out['total_rows'];\n" \
 "        } else {\n" \
 "            if (isset($out->error)) {\n" \
 "                throw new CouchbaseException($out->error . ': ' . $out->reason);\n" \
 "            }\n" \
+"\n" \
+"            $rows = $out->rows;\n" \
+"            $total = $out->total_rows;\n" \
 "        }\n" \
-"        return $out;\n" \
+"        return new CouchbaseResult($rows, $total);\n" \
 "    }\n" \
 "\n" \
 "    /**\n" \
 "     * Performs a N1QL query.\n" \
 "     *\n" \
 "     * @param $dmlstring\n" \
-"     * @return mixed\n" \
+"     * @return CouchbaseResult\n" \
 "     * @throws CouchbaseException\n" \
 "     *\n" \
 "     * @internal\n" \
@@ -1398,7 +1404,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "        foreach ($dataOut['results'] as $row) {\n" \
 "            $rows[] = json_decode($row, $json_asarray);\n" \
 "        }\n" \
-"        return $rows;\n" \
+"        return new CouchbaseResult($rows, $meta['metrics']['resultCount']);\n" \
 "    }\n" \
 "\n" \
 "    /**\n" \
@@ -1411,9 +1417,9 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "    public function query($query, $params = null, $json_asarray = false) {\n" \
 "        if ($query instanceof _CouchbaseDefaultViewQuery ||\n" \
 "            $query instanceof _CouchbaseSpatialViewQuery) {\n" \
-"            return new CouchbaseResult($this->_view($query, $json_asarray));\n" \
+"            return $this->_view($query, $json_asarray);\n" \
 "        } else if ($query instanceof CouchbaseN1qlQuery) {\n" \
-"            return new CouchbaseResult($this->_n1ql($query, $params, $json_asarray));\n" \
+"            return $this->_n1ql($query, $params, $json_asarray);\n" \
 "        } else {\n" \
 "            throw new CouchbaseException(\n" \
 "                'Passed object must be of type ViewQuery or N1qlQuery');\n" \
@@ -1719,13 +1725,14 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 " * method of the CouchbaseBucket class.\n" \
 " *\n" \
 " * @property array $rows\n" \
+" * @property int $rowsCount\n" \
 " * @property integer $offset\n" \
 " *\n" \
 " * @package Couchbase\n" \
 " *\n" \
 " * @see CouchbaseBucket::query()\n" \
 " */\n" \
-"class CouchbaseResult implements Iterator {\n" \
+"class CouchbaseResult implements Iterator, Countable {\n" \
 "\n" \
 "    /**\n" \
 "     * @var array\n" \
@@ -1734,6 +1741,14 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * All the rows of the result.\n" \
 "     */\n" \
 "    private $rows;\n" \
+"\n" \
+"    /**\n" \
+"     * @var int\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * Total of rows.\n" \
+"     */\n" \
+"    private $rowsCount;\n" \
 "\n" \
 "    /**\n" \
 "     * @var integer\n" \
@@ -1750,11 +1765,13 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * @ignore\n" \
 "     *\n" \
 "     * @param array $rows All the rows returned by a query.\n" \
+"     * @param int $rowsCount\n" \
 "     *\n" \
 "     * @private\n" \
 "     */\n" \
-"    public function __construct(array $rows) {\n" \
+"    public function __construct(array $rows, $rowsCount) {\n" \
 "        $this->rows = $rows;\n" \
+"        $this->rowsCount = (int) $rowsCount;\n" \
 "        $this->offset = 0;\n" \
 "    }\n" \
 "\n" \
@@ -1806,6 +1823,16 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "    public function rewind()\n" \
 "    {\n" \
 "        $this->offset = 0;\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Count elements of an object\n" \
+"     *\n" \
+"     * @return int\n" \
+"     */\n" \
+"    public function count()\n" \
+"    {\n" \
+"        return $this->rowsCount;\n" \
 "    }\n" \
 "}\n" \
 ""},

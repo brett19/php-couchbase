@@ -273,7 +273,7 @@ class CouchbaseBucket {
      * Executes a view query.
      *
      * @param ViewQuery $queryObj
-     * @return mixed
+     * @return CouchbaseResult
      * @throws CouchbaseException
      *
      * @internal
@@ -286,19 +286,25 @@ class CouchbaseBucket {
             if (isset($out['error'])) {
                 throw new CouchbaseException($out['error'] . ': ' . $out['reason']);
             }
+
+            $rows = $out['rows'];
+            $total = $out['total_rows'];
         } else {
             if (isset($out->error)) {
                 throw new CouchbaseException($out->error . ': ' . $out->reason);
             }
+
+            $rows = $out->rows;
+            $total = $out->total_rows;
         }
-        return $out;
+        return new CouchbaseResult($rows, $total);
     }
 
     /**
      * Performs a N1QL query.
      *
      * @param $dmlstring
-     * @return mixed
+     * @return CouchbaseResult
      * @throws CouchbaseException
      *
      * @internal
@@ -325,7 +331,7 @@ class CouchbaseBucket {
         foreach ($dataOut['results'] as $row) {
             $rows[] = json_decode($row, $json_asarray);
         }
-        return $rows;
+        return new CouchbaseResult($rows, $meta['metrics']['resultCount']);
     }
 
     /**
@@ -338,9 +344,9 @@ class CouchbaseBucket {
     public function query($query, $params = null, $json_asarray = false) {
         if ($query instanceof _CouchbaseDefaultViewQuery ||
             $query instanceof _CouchbaseSpatialViewQuery) {
-            return new CouchbaseResult($this->_view($query, $json_asarray));
+            return $this->_view($query, $json_asarray);
         } else if ($query instanceof CouchbaseN1qlQuery) {
-            return new CouchbaseResult($this->_n1ql($query, $params, $json_asarray));
+            return $this->_n1ql($query, $params, $json_asarray);
         } else {
             throw new CouchbaseException(
                 'Passed object must be of type ViewQuery or N1qlQuery');

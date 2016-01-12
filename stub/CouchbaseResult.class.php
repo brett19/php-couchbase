@@ -12,13 +12,14 @@
  * method of the CouchbaseBucket class.
  *
  * @property array $rows
+ * @property int $rowsCount
  * @property integer $offset
  *
  * @package Couchbase
  *
  * @see CouchbaseBucket::query()
  */
-class CouchbaseResult implements Iterator {
+class CouchbaseResult implements Iterator, Countable {
 
     /**
      * @var array
@@ -27,6 +28,14 @@ class CouchbaseResult implements Iterator {
      * All the rows of the result.
      */
     private $rows;
+
+    /**
+     * @var int
+     * @ignore
+     *
+     * Total of rows.
+     */
+    private $rowsCount;
 
     /**
      * @var integer
@@ -43,11 +52,13 @@ class CouchbaseResult implements Iterator {
      * @ignore
      *
      * @param array $rows All the rows returned by a query.
+     * @param int $rowsCount
      *
      * @private
      */
-    public function __construct(array $rows) {
+    public function __construct(array $rows, $rowsCount) {
         $this->rows = $rows;
+        $this->rowsCount = (int) $rowsCount;
         $this->offset = 0;
     }
 
@@ -99,5 +110,15 @@ class CouchbaseResult implements Iterator {
     public function rewind()
     {
         $this->offset = 0;
+    }
+
+    /**
+     * Count elements of an object
+     *
+     * @return int
+     */
+    public function count()
+    {
+        return $this->rowsCount;
     }
 }
