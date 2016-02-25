@@ -135,7 +135,7 @@ class CouchbaseViewQuery {
         $path = '/_design/' . $this->ddoc . '/' . $type . '/' . $this->name;
         $args = array();
         foreach ($this->options as $option => $value) {
-            array_push($args, $option . '=' . $value);
+            array_push($args, $option . '=' . urlencode($value));
         }
         $path .= '?' . implode('&', $args);
         return $path;
