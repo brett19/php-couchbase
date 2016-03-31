@@ -1,95 +1,82 @@
-#include <libcouchbase/couchbase.h>
 #include "couchbase.h"
-#include "phphelpers.h"
+#include "ext/standard/php_var.h"
 #include "exception.h"
+#include "zap.h"
 #include "cluster.h"
-#include "metadoc.h"
+#include "opcookie.h"
 
-zend_object_handlers cluster_handlers;
+zap_class_entry cluster_class;
+zend_class_entry *cluster_ce;
 
-void cluster_free_storage(void *object TSRMLS_DC)
+#define PHP_THISOBJ() zap_fetch_this(cluster_object)
+
+zap_FREEOBJ_FUNC(cluster_free_storage)
 {
-	cluster_object *obj = (cluster_object *)object;
+    cluster_object *obj = zap_get_object(cluster_object, object);
 
-	zend_hash_destroy(obj->std.properties);
-	FREE_HASHTABLE(obj->std.properties);
+    if (obj->lcb != NULL) {
+        lcb_destroy(obj->lcb);
+        obj->lcb = NULL;
+    }
 
-	efree(obj);
+    zend_object_std_dtor(&obj->std TSRMLS_CC);
+    zap_free_object_storage(obj);
 }
 
-zend_object_value cluster_create_handler(zend_class_entry *type TSRMLS_DC)
+zap_CREATEOBJ_FUNC(cluster_create_handler)
 {
-	zend_object_value retval;
+    cluster_object *obj = zap_alloc_object_storage(cluster_object, type);
 
-	cluster_object *obj = (cluster_object *)emalloc(sizeof(cluster_object));
-	memset(obj, 0, sizeof(cluster_object));
-	obj->std.ce = type;
+    zend_object_std_init(&obj->std, type TSRMLS_CC);
+    zap_object_properties_init(&obj->std, type);
 
-	ALLOC_HASHTABLE(obj->std.properties);
-	zend_hash_init(obj->std.properties, 0, NULL, ZVAL_PTR_DTOR, 0);
-	phlp_object_properties_init(&obj->std, type);
+    obj->lcb = NULL;
 
-	retval.handle = zend_objects_store_put(obj, NULL,
-		cluster_free_storage, NULL TSRMLS_CC);
-	retval.handlers = &cluster_handlers;
-
-	return retval;
+    return zap_finalize_object(obj, &cluster_class);
 }
 
 typedef struct {
-	zval *retval;
-	cluster_object *owner;
-} copcookie;
-
-copcookie * copcookie_init(cluster_object *clusterobj, zval *return_value) {
-	copcookie *cookie = emalloc(sizeof(copcookie));
-	cookie->owner = clusterobj;
-	cookie->retval = return_value;
-	ZVAL_NULL(cookie->retval);
-	return cookie;
-}
-
-void ccookie_error(const copcookie *cookie, cluster_object *data, zval *doc,
-				  lcb_error_t error TSRMLS_DC) {
-	zval *zerror = create_lcb_exception(error TSRMLS_CC); 
-	if (Z_TYPE_P(cookie->retval) == IS_ARRAY) {
-		metadoc_from_error(doc, zerror TSRMLS_CC);
-	} else {
-		data->error = zerror;
-	}
-}
+    opcookie_res header;
+    zapval bytes;
+} opcookie_http_res;
 
 static void http_complete_callback(lcb_http_request_t request, lcb_t instance,
 			const void *cookie, lcb_error_t error,
 			const lcb_http_resp_t *resp) {
-	cluster_object *data = (cluster_object*)lcb_get_cookie(instance);
-	zval *doc = ((copcookie*)cookie)->retval;
-	TSRMLS_FETCH();
+    opcookie_http_res *result = ecalloc(1, sizeof(opcookie_http_res));
+    TSRMLS_FETCH();
 
-	if (error == LCB_SUCCESS) {
-		ZVAL_STRINGL(doc, resp->v.v0.bytes, resp->v.v0.nbytes, 1);
-	} else {
-		ccookie_error(cookie, data, NULL, error TSRMLS_CC);
-	}
+    result->header.err = error;
+    zapval_alloc_stringl(
+            result->bytes, resp->v.v0.bytes, resp->v.v0.nbytes);
+
+    opcookie_push((opcookie*)cookie, &result->header);
 }
 
-static int pcbc_wait(cluster_object *obj TSRMLS_DC)
+static lcb_error_t proc_http_results(cluster_object *cluster, zval *return_value,
+        opcookie *cookie TSRMLS_DC)
 {
-	lcb_t instance = obj->lcb;
-	obj->error = NULL;
+    opcookie_http_res *res;
+    lcb_error_t err = LCB_SUCCESS;
 
-	lcb_wait(instance);
+    // Any error should cause everything to fail... for now?
+    err = opcookie_get_first_error(cookie);
 
-	if (obj->error) {
-		zend_throw_exception_object(obj->error TSRMLS_CC);
-		obj->error = NULL;
-		return 0;
-	}
+    if (err == LCB_SUCCESS) {
+        // TODO: This could leak with multiple results...  It also copies
+        //   which might not be needed...
+        FOREACH_OPCOOKIE_RES(opcookie_http_res, res, cookie) {
+            zap_zval_stringl_p(return_value,
+                zapval_strval_p(&res->bytes), zapval_strlen_p(&res->bytes))
+        }
+    }
 
-	return 1;
+    FOREACH_OPCOOKIE_RES(opcookie_http_res, res, cookie) {
+        zapval_destroy(res->bytes);
+    }
+
+    return err;
 }
-
-zend_class_entry *cluster_ce;
 
 PHP_METHOD(Cluster, __construct)
 {
@@ -187,11 +174,12 @@ PHP_METHOD(Cluster, http_request)
 {
 	cluster_object *data = PHP_THISOBJ();
 	lcb_http_cmd_t cmd = { 0 };
-	copcookie *cookie;
+	opcookie *cookie;
 	lcb_http_type_t type;
 	lcb_http_method_t method;
 	const char *contenttype;
 	zval *ztype, *zmethod, *zpath, *zbody, *zcontenttype;
+	lcb_error_t err;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzzzz",
 				&ztype, &zmethod, &zpath, &zbody, &zcontenttype) == FAILURE) {
@@ -240,12 +228,21 @@ PHP_METHOD(Cluster, http_request)
 	cmd.v.v0.chunked = 0;
 	cmd.v.v0.content_type = contenttype;
 
-	cookie = copcookie_init(data, return_value);
+	cookie = opcookie_init();
 
-	lcb_make_http_request(data->lcb, cookie, type, &cmd, NULL);
-	pcbc_wait(data TSRMLS_CC);
+	err = lcb_make_http_request(data->lcb, cookie, type, &cmd, NULL);
 
-	efree(cookie);
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->lcb);
+
+        err = proc_http_results(data, return_value, cookie TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
+
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
 }
 
 zend_function_entry cluster_methods[] = {
@@ -256,12 +253,9 @@ zend_function_entry cluster_methods[] = {
 };
 
 void couchbase_init_cluster(INIT_FUNC_ARGS) {
-	zend_class_entry ce;
-	INIT_CLASS_ENTRY(ce, "_CouchbaseCluster", cluster_methods);
-	ce.create_object = cluster_create_handler;
-	cluster_ce = zend_register_internal_class(&ce TSRMLS_CC);
-
-	memcpy(&cluster_handlers,
-			zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-	cluster_handlers.clone_obj = NULL;
+    zap_init_class_entry(&cluster_class, "_CouchbaseCluster",
+            cluster_methods);
+    cluster_class.create_obj = cluster_create_handler;
+    cluster_class.free_obj = cluster_free_storage;
+    cluster_ce = zap_register_internal_class(&cluster_class, cluster_object);
 }

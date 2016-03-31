@@ -4,9 +4,14 @@
 #define PCBC_PP_MAX_ARGS 10
 
 typedef struct {
+    char *str;
+    uint len;
+} pcbc_pp_id;
+
+typedef struct {
     char name[16];
     zval **ptr;
-    zval *val;
+    zapval val;
 } pcbc_pp_state_arg;
 
 typedef struct {
@@ -15,30 +20,29 @@ typedef struct {
     int arg_opt;
     int arg_named;
     int cur_idx;
-    zval *zids;
-    zval tmpzid;
+    zapval zids;
     HashPosition hash_pos;
 } pcbc_pp_state;
 
 // assumes first parameter in the spec is the ids (`id|`).
 int pcbc_pp_begin(int param_count TSRMLS_DC, pcbc_pp_state *state, const char *spec, ...) {
-    zval **args[PCBC_PP_MAX_ARGS];
+    zapval args[PCBC_PP_MAX_ARGS];
     char arg_name[16];
     const char *spec_iter = spec;
     char *arg_iter = arg_name;
     int arg_type = 0;
     int arg_num = 0;
-    zval *znamed;
+    zapval *znamed;
     int arg_unnamed;
     int ii;
     va_list vl;
     va_start(vl,spec);
 
-    if (_zend_get_parameters_array_ex(param_count, args TSRMLS_CC) != SUCCESS) {
+    if (zap_get_parameters_array_ex(param_count, args) != SUCCESS) {
         return FAILURE;
     }
 
-    state->zids = *args[0];
+    state->zids = args[0];
     state->cur_idx = 0;
     state->arg_req = 0;
     state->arg_opt = 0;
@@ -49,14 +53,24 @@ int pcbc_pp_begin(int param_count TSRMLS_DC, pcbc_pp_state *state, const char *s
             if (arg_iter != arg_name) {
                 pcbc_pp_state_arg *arg = &state->args[arg_num];
                 *arg_iter = 0;
-                
+
+                // First arguement (id) is a special case...
+                if (arg_num == 0) {
+                    // First arguement (id) is a special case...
+                    if (strcmp(arg_name, "id") != 0) {
+                        php_printf("First argument must be ID.\n");
+                        return FAILURE;
+                    }
+                }
+
                 memcpy(arg->name, arg_name, 16);
+
                 arg->ptr = va_arg(vl, zval**);
 
-                if (arg_num > 0 && arg_num < param_count) {
-                    arg->val = *args[arg_num];
+                if (arg_num > 0 && arg_num < param_count && arg_type < 2) {
+                    arg->val = args[arg_num];
                 } else {
-                    arg->val = NULL;
+                    zapval_undef(arg->val);
                 }
 
                 if (arg_type == 0) {
@@ -87,16 +101,18 @@ int pcbc_pp_begin(int param_count TSRMLS_DC, pcbc_pp_state *state, const char *s
     } while(1);
 
     if (param_count < state->arg_req) {
+        // TODO: This should not printf...
         php_printf("Less than required number of args.\n");
         return FAILURE;
     }
 
     arg_unnamed = state->arg_req + state->arg_opt;
+
     if (param_count > arg_unnamed) {
-        znamed = *args[arg_unnamed];
+        znamed = &args[arg_unnamed];
 
         // Ensure that it is an options array!
-        if (Z_TYPE_P(znamed) != IS_ARRAY) {
+        if (!zapval_is_array(*znamed)) {
             php_printf("Options argument must be an associative array.\n");
             return FAILURE;
         }
@@ -109,38 +125,43 @@ int pcbc_pp_begin(int param_count TSRMLS_DC, pcbc_pp_state *state, const char *s
         pcbc_pp_state_arg *arg = &state->args[aii];
 
         if (znamed) {
-            HashTable *htoptions = Z_ARRVAL_P(znamed);
-            zval **zvalue;
+            HashTable *htoptions = zapval_arrval(*znamed);
+            zval *zvalue = zap_hash_str_find(
+                    htoptions, arg->name, strlen(arg->name));
 
-            if (zend_hash_find(htoptions, arg->name, strlen(arg->name)+1,
-                               (void**)&zvalue) == SUCCESS) {
-                arg->val = *zvalue;
+            if (zvalue) {
+                arg->val = zapval_from_zvalptr(zvalue);
             } else {
-                arg->val = NULL;
+                zapval_undef(arg->val);
             }
         } else {
-            arg->val = NULL;
+            zapval_undef(arg->val);
         }
     }
 
-    if (Z_TYPE_P(state->zids) == IS_ARRAY) {
+    if (zapval_is_array(state->zids)) {
         // If this is an array, make sure its internal pointer is the start.
-        HashTable *hash = Z_ARRVAL_P(state->zids);
+        HashTable *hash = zapval_arrval(state->zids);
         zend_hash_internal_pointer_reset_ex(hash, &state->hash_pos);
+    } else if (zapval_is_string(state->zids)) {
+        // Nothing to configure for basic string
+    } else {
+        // Definitely an error
+        return FAILURE;
     }
 
     return SUCCESS;
 }
 
 int pcbc_pp_ismapped(pcbc_pp_state *state) {
-    return Z_TYPE_P(state->zids) != IS_STRING;
+    return !zapval_is_string(state->zids);
 }
 
 int pcbc_pp_keycount(pcbc_pp_state *state) {
-    if (Z_TYPE_P(state->zids) == IS_STRING) {
+    if (zapval_is_string(state->zids)) {
         return 1;
-    } else if (Z_TYPE_P(state->zids) == IS_ARRAY) {
-        return zend_hash_num_elements(Z_ARRVAL_P(state->zids));
+    } else if (zapval_is_array(state->zids)) {
+        return zend_hash_num_elements(zapval_arrval(state->zids));
     } else {
         return 0;
     }
@@ -149,58 +170,69 @@ int pcbc_pp_keycount(pcbc_pp_state *state) {
 int pcbc_pp_next(pcbc_pp_state *state) {
     int ii;
     int arg_total = state->arg_req + state->arg_opt + state->arg_named;
+    pcbc_pp_id *id_ptr = (pcbc_pp_id*)state->args[0].ptr;
 
     // Set everything to 'base' values
     for (ii = 1; ii < arg_total; ++ii) {
-        *(state->args[ii].ptr) = state->args[ii].val;
+        if (zapval_is_undef(state->args[ii].val)) {
+            *(state->args[ii].ptr) = NULL;
+        } else {
+            *(state->args[ii].ptr) = zapval_zvalptr(state->args[ii].val);
+        }
     }
 
-    if (Z_TYPE_P(state->zids) == IS_ARRAY) {
-        HashTable *hash = Z_ARRVAL_P(state->zids);
-        zval **data;
+    if (zapval_is_array(state->zids)) {
+        HashTable *hash = zapval_arrval(state->zids);
+        zapval *data;
+        zend_ulong keyidx, key_type;
         char *keystr;
-        uint keystr_len, key_type;
-        ulong keyidx;
+        uint keystr_len;
 
-        if (zend_hash_get_current_data_ex(hash, (void**) &data, &state->hash_pos) != SUCCESS) {
+        data = zap_hash_get_current_data_ex(hash, &state->hash_pos);
+        if (data == 0) {
             return 0;
         }
 
-        key_type = zend_hash_get_current_key_ex(hash, &keystr, &keystr_len, &keyidx, 0, &state->hash_pos);
+        key_type = zap_hash_str_get_current_key_ex(
+                hash, &keystr, &keystr_len, &keyidx, &state->hash_pos);
 
         if (key_type == HASH_KEY_IS_STRING) {
-            ZVAL_STRINGL(&state->tmpzid, keystr, keystr_len-1, 0);
-            *(state->args[0].ptr) = &state->tmpzid;
+            id_ptr->str = keystr;
+            id_ptr->len = keystr_len;
 
-            if (Z_TYPE_PP(data) == IS_ARRAY) {
-                HashTable *htdata = Z_ARRVAL_PP(data);
-                zval **zvalue;
+            if (zapval_is_array(*data)) {
+                HashTable *htdata = zapval_arrval(*data);
+                zval *zvalue;
 
                 for (ii = 1; ii < arg_total; ++ii) {
                     pcbc_pp_state_arg * arg = &state->args[ii];
 
-                    if (zend_hash_find(htdata, arg->name, strlen(arg->name)+1,
-                                       (void**)&zvalue) == SUCCESS) {
-                        *(arg->ptr) = *zvalue;
+                    zvalue = zap_hash_str_find(
+                            htdata, arg->name, strlen(arg->name));
+                    if (zvalue != NULL) {
+                        *(arg->ptr) = zvalue;
                     }
                 }
             }
         } else if (key_type == HASH_KEY_IS_LONG) {
-            *(state->args[0].ptr) = *data;
+            id_ptr->str = zapval_strval_p(data);
+            id_ptr->len = zapval_strlen_p(data);
         }
 
         zend_hash_move_forward_ex(hash, &state->hash_pos);
         return 1;
-    } else {
+    } else if (zapval_is_string(state->zids)) {
         if (state->cur_idx > 0) {
             return 0;
         }
-        *(state->args[0].ptr) = state->zids;
+        id_ptr->str = zapval_strval_p(&state->zids);
+        id_ptr->len = zapval_strlen_p(&state->zids);
         state->cur_idx++;
         return 1;
+    } else {
+        // Invalid type for state->zids
+        return 0;
     }
-
-    return 0;
 }
 
-#endif /* PARAMPARSER_H_ */
+#endif

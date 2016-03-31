@@ -40,6 +40,7 @@ if test "$PHP_COUCHBASE" != "no"; then
 	couchbase.c \
 	exception.c \
 	metadoc.c \
+	opcookie.c \
 	transcoding.c \
 	fastlz/fastlz.c \
   , $ext_shared)

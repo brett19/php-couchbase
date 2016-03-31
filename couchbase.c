@@ -3,6 +3,7 @@
 #include "metadoc.h"
 #include "phpstubstr.h"
 #include "fastlz/fastlz.h"
+#include "zap.h"
 
 #if HAVE_ZLIB
 #include <zlib.h>
@@ -150,10 +151,10 @@ PHP_FUNCTION(couchbase_zlib_compress)
     compress((uint8_t*)dataOut + 4, &dataOutSize, dataIn, dataSize);
     *(uint32_t*)dataOut = dataSize;
 
-    RETURN_STRINGL(dataOut, 4 + dataOutSize, 0);
+    zap_zval_stringl_p(return_value, dataOut, 4 + dataOutSize);
+    efree(dataOut);
 #else
     zend_throw_exception(NULL, "The zlib library was not available when the couchbase extension was built.", 0 TSRMLS_CC);
-    RETURN_NULL();
 #endif
 }
 
@@ -175,10 +176,10 @@ PHP_FUNCTION(couchbase_zlib_decompress)
     dataOut = emalloc(dataOutSize);
     uncompress(dataOut, &dataOutSize, (uint8_t*)dataIn + 4, dataSize - 4);
 
-    RETURN_STRINGL(dataOut, dataOutSize, 0);
+    zap_zval_stringl_p(return_value, dataOut, dataOutSize);
+    efree(dataOut);
 #else
     zend_throw_exception(NULL, "The zlib library was not available when the couchbase extension was built.", 0 TSRMLS_CC);
-    RETURN_NULL();
 #endif
 }
 
@@ -200,7 +201,9 @@ PHP_FUNCTION(couchbase_fastlz_compress)
     dataOutSize = fastlz_compress(dataIn, dataSize, (uint8_t*)dataOut + 4);
     *(uint32_t*)dataOut = dataSize;
 
-    RETURN_STRINGL(dataOut, 4 + dataOutSize, 0);
+    zap_zval_stringl_p(return_value, dataOut, 4 + dataOutSize);
+
+    efree(dataOut);
 }
 
 PHP_FUNCTION(couchbase_fastlz_decompress)
@@ -221,7 +224,9 @@ PHP_FUNCTION(couchbase_fastlz_decompress)
     dataOutSize = fastlz_decompress(
             (uint8_t*)dataIn + 4, dataSize - 4, dataOut, dataOutSize);
 
-    RETURN_STRINGL(dataOut, dataOutSize, 0);
+    zap_zval_stringl_p(return_value, dataOut, dataOutSize);
+
+    efree(dataOut);
 }
 
 static zend_function_entry couchbase_functions[] = {

@@ -3,274 +3,489 @@
 #include "exception.h"
 #include "datainfo.h"
 #include "paramparser.h"
-#include "phphelpers.h"
+#include "zap.h"
 #include "bucket.h"
 #include "cas.h"
 #include "metadoc.h"
 #include "transcoding.h"
+#include "opcookie.h"
 
-#define PCBC_CHECK_ZVAL(v,t,m) \
+#define _PCBC_CHECK_ZVAL(v,t,m) \
 	if (v && Z_TYPE_P(v) != t) { \
 		throw_pcbc_exception(m, LCB_EINVAL); \
 		RETURN_NULL(); \
 	}
+#define PCBC_CHECK_ZVAL_STRING(v, m) \
+    _PCBC_CHECK_ZVAL(v, IS_STRING, m)
+#define PCBC_CHECK_ZVAL_LONG(v, m) \
+    _PCBC_CHECK_ZVAL(v, IS_LONG, m)
+#define PCBC_CHECK_ZVAL_CAS(v, m) \
+    _PCBC_CHECK_ZVAL(v, IS_RESOURCE, m)
+#define PCBC_CHECK_ZVAL_BOOL(v, m) \
+    if (v && zap_zval_is_bool(v)) { \
+        throw_pcbc_exception(m, LCB_EINVAL); \
+        RETURN_NULL(); \
+    }
+
+#define PHP_THISOBJ() zap_fetch_this(bucket_object)
+
+zap_class_entry bucket_class;
+zend_class_entry *bucket_ce;
+
+zap_FREEOBJ_FUNC(bucket_free_storage)
+{
+    bucket_object *obj = zap_get_object(bucket_object, object);
+
+    zapval_destroy(obj->encoder);
+    zapval_destroy(obj->decoder);
+    zapval_destroy(obj->prefix);
+
+    zend_object_std_dtor(&obj->std TSRMLS_CC);
+    zap_free_object_storage(obj);
+}
+
+zap_CREATEOBJ_FUNC(bucket_create_handler)
+{
+    bucket_object *obj = zap_alloc_object_storage(bucket_object, type);
+
+    zend_object_std_init(&obj->std, type TSRMLS_CC);
+    zap_object_properties_init(&obj->std, type);
+
+    zapval_alloc_empty_string(obj->encoder);
+    zapval_alloc_empty_string(obj->decoder);
+    zapval_alloc_empty_string(obj->prefix);
+
+    obj->conn = NULL;
+
+    return zap_finalize_object(obj, &bucket_class);
+}
+
+static zval * bop_get_return_doc(zval *return_value, zapval *key, int is_mapped)
+{
+    zval *doc = return_value;
+    if (is_mapped) {
+        if (!zap_zval_is_array(return_value)) {
+            array_init(return_value);
+        }
+        {
+            char tmpstr[251];
+            HashTable *htretval = Z_ARRVAL_P(return_value);
+            uint key_len = zapval_strlen_p(key);
+            zapval new_doc;
+            zapval_alloc_null(new_doc);
+
+            memcpy(tmpstr, zapval_strval_p(key), key_len);
+            tmpstr[key_len] = '\0';
+
+            doc = zap_hash_str_add(
+                    htretval, tmpstr, key_len, zapval_zvalptr(new_doc));
+        }
+    }
+    return doc;
+}
 
 typedef struct {
-	int mapped;
-	int remaining;
-	zval *retval;
-	bucket_object *owner;
-} bopcookie;
-
-bopcookie * bopcookie_init(bucket_object *bucketobj, zval *return_value, int ismapped) {
-	bopcookie *cookie = emalloc(sizeof(bopcookie));
-	cookie->owner = bucketobj;
-	cookie->retval = return_value;
-	if (ismapped) {
-		array_init(cookie->retval);
-	} else {
-		ZVAL_NULL(cookie->retval);
-	}
-	return cookie;
-}
-
-void bopcookie_destroy(bopcookie *cookie) {
-	efree(cookie);
-}
-
-zval * bopcookie_get_doc(const bopcookie *cookie, const char *key, uint key_len) {
-	// Maximum server keylength is currently 250
-	static char tmpstr[251];
-
-	zval *doc;
-	if (Z_TYPE_P(cookie->retval) == IS_ARRAY && key != NULL) {
-		MAKE_STD_ZVAL(doc);
-		ZVAL_NULL(doc);
-
-		memcpy(tmpstr, key, key_len);
-		tmpstr[key_len] = '\0';
-		add_assoc_zval_ex(cookie->retval, tmpstr, key_len + 1, doc);
-	} else {
-		doc = cookie->retval;
-	}
-	return doc;
-}
-
-void bopcookie_error(const bopcookie *cookie, bucket_object *data, zval *doc,
-	lcb_error_t error TSRMLS_DC) {
-	zval *zerror = create_lcb_exception(error TSRMLS_CC);
-	if (Z_TYPE_P(cookie->retval) == IS_ARRAY) {
-		metadoc_from_error(doc, zerror TSRMLS_CC);
-		zval_ptr_dtor(&zerror);
-	} else {
-		data->error = zerror;
-	}
-}
-
-zend_object_handlers bucket_handlers;
-
-void bucket_free_storage(void *object TSRMLS_DC)
-{
-	bucket_object *obj = (bucket_object *)object;
-
-	zend_hash_destroy(obj->std.properties);
-	FREE_HASHTABLE(obj->std.properties);
-
-	zval_ptr_dtor(&obj->encoder);
-	zval_ptr_dtor(&obj->decoder);
-	zval_ptr_dtor(&obj->prefix);
-
-	efree(obj);
-}
-
-zend_object_value bucket_create_handler(zend_class_entry *type TSRMLS_DC)
-{
-	zend_object_value retval;
-
-	bucket_object *obj = (bucket_object *)emalloc(sizeof(bucket_object));
-	memset(obj, 0, sizeof(bucket_object));
-	obj->std.ce = type;
-	obj->conn = NULL;
-
-	MAKE_STD_ZVAL(obj->encoder);
-	ZVAL_EMPTY_STRING(obj->encoder);
-	MAKE_STD_ZVAL(obj->decoder);
-	ZVAL_EMPTY_STRING(obj->decoder);
-	MAKE_STD_ZVAL(obj->prefix);
-	ZVAL_EMPTY_STRING(obj->prefix);
-
-	ALLOC_HASHTABLE(obj->std.properties);
-	zend_hash_init(obj->std.properties, 0, NULL, ZVAL_PTR_DTOR, 0);
-	phlp_object_properties_init(&obj->std, type);
-
-	retval.handle = zend_objects_store_put(obj,
-	        (zend_objects_store_dtor_t)zend_objects_destroy_object,
-	        (zend_objects_free_object_storage_t)bucket_free_storage,
-			NULL TSRMLS_CC);
-	retval.handlers = &bucket_handlers;
-
-	return retval;
-}
+    opcookie_res header;
+    zapval key;
+    zapval bytes;
+    zapval flags;
+    zapval datatype;
+    zapval cas;
+} opcookie_get_res;
 
 static void get_callback(lcb_t instance, const void *cookie, lcb_error_t error,
 		const lcb_get_resp_t *resp)
 {
-	bopcookie *op = (bopcookie*)cookie;
-	bucket_object *data = op->owner;
-	zval *doc = bopcookie_get_doc(cookie, resp->v.v0.key, resp->v.v0.nkey);
-	TSRMLS_FETCH();
+    opcookie_get_res *result = ecalloc(1, sizeof(opcookie_get_res));
+    TSRMLS_FETCH();
 
-	if (error == LCB_SUCCESS) {
-		if (metadoc_from_bytes(data, doc, resp->v.v0.bytes, resp->v.v0.nbytes,
-				resp->v.v0.cas, resp->v.v0.flags, resp->v.v0.datatype TSRMLS_CC) == FAILURE) {
-			bopcookie_error(cookie, data, doc, LCB_ERROR TSRMLS_CC);
-			return;
-		}
-	} else {
-		bopcookie_error(cookie, data, doc, error TSRMLS_CC);
-	}
+    result->header.err = error;
+    zapval_alloc_stringl(
+            result->key, resp->v.v0.key, resp->v.v0.nkey);
+    zapval_alloc_stringl(
+            result->bytes, resp->v.v0.bytes, resp->v.v0.nbytes);
+    zapval_alloc_long(result->flags,resp->v.v0.flags);
+    zapval_alloc_long(result->datatype, resp->v.v0.datatype);
+    alloc_cas(result->cas, resp->v.v0.cas TSRMLS_CC);
+
+    opcookie_push((opcookie*)cookie, &result->header);
 }
+
+static lcb_error_t proc_get_results(bucket_object *bucket, zval *return_value,
+        opcookie *cookie, int is_mapped TSRMLS_DC)
+{
+    opcookie_get_res *res;
+    lcb_error_t err = LCB_SUCCESS;
+
+    // If we are not mapped, we need to throw any op errors
+    if (is_mapped == 0) {
+        err = opcookie_get_first_error(cookie);
+    }
+
+    if (err == LCB_SUCCESS) {
+        FOREACH_OPCOOKIE_RES(opcookie_get_res, res, cookie) {
+            zval *doc = bop_get_return_doc(
+                    return_value, &res->key, is_mapped);
+
+            if (res->header.err == LCB_SUCCESS) {
+                zapval value;
+                zapval_alloc_null(value);
+                pcbc_decode_value(bucket,
+                        &value, &res->bytes, &res->flags, &res->datatype TSRMLS_CC);
+
+                make_metadoc(doc, &value, &res->flags, &res->cas TSRMLS_CC);
+                zapval_destroy(value);
+            } else {
+                make_metadoc_error(doc, res->header.err TSRMLS_CC);
+            }
+        }
+    }
+
+    FOREACH_OPCOOKIE_RES(opcookie_get_res, res, cookie) {
+        zapval_destroy(res->key);
+        zapval_destroy(res->bytes);
+        zapval_destroy(res->flags);
+        zapval_destroy(res->datatype);
+        zapval_destroy(res->cas);
+    }
+
+    return err;
+}
+
+typedef struct {
+    opcookie_res header;
+    zapval key;
+} opcookie_unlock_res;
+
+static void unlock_callback(lcb_t instance, const void *cookie,
+        lcb_error_t error, const lcb_unlock_resp_t *resp)
+{
+    opcookie_unlock_res *result = ecalloc(1, sizeof(opcookie_unlock_res));
+    TSRMLS_FETCH();
+
+    result->header.err = error;
+    zapval_alloc_stringl(
+            result->key, resp->v.v0.key, resp->v.v0.nkey);
+
+    opcookie_push((opcookie*)cookie, &result->header);
+}
+
+static lcb_error_t proc_unlock_results(bucket_object *bucket, zval *return_value,
+        opcookie *cookie, int is_mapped TSRMLS_DC)
+{
+    opcookie_unlock_res *res;
+    lcb_error_t err = LCB_SUCCESS;
+
+    // If we are not mapped, we need to throw any op errors
+    if (is_mapped == 0) {
+        err = opcookie_get_first_error(cookie);
+    }
+
+    if (err == LCB_SUCCESS) {
+        FOREACH_OPCOOKIE_RES(opcookie_unlock_res, res, cookie) {
+            zval *doc = bop_get_return_doc(
+                    return_value, &res->key, is_mapped);
+
+            if (res->header.err == LCB_SUCCESS) {
+                make_metadoc(doc, NULL, NULL, NULL TSRMLS_CC);
+            } else {
+                make_metadoc_error(doc, res->header.err TSRMLS_CC);
+            }
+        }
+    }
+
+    FOREACH_OPCOOKIE_RES(opcookie_unlock_res, res, cookie) {
+        zapval_destroy(res->key);
+    }
+
+    return err;
+}
+typedef struct {
+    opcookie_res header;
+    zapval key;
+    zapval cas;
+} opcookie_store_res;
 
 static void store_callback(lcb_t instance, const void *cookie,
 		lcb_storage_t operation, lcb_error_t error,
 		const lcb_store_resp_t *resp) {
-	bopcookie *op = (bopcookie*)cookie;
-	bucket_object *data = op->owner;
-	zval *doc = bopcookie_get_doc(cookie, resp->v.v0.key, resp->v.v0.nkey);
-	TSRMLS_FETCH();
+    opcookie_store_res *result = ecalloc(1, sizeof(opcookie_store_res));
+    TSRMLS_FETCH();
 
-	if (error == LCB_SUCCESS) {
-		if (metadoc_from_bytes(data, doc, NULL, 0, resp->v.v0.cas, 0, 0 TSRMLS_CC) == FAILURE) {
-			bopcookie_error(cookie, data, doc, LCB_ERROR TSRMLS_CC);
-			return;
-		}
-	} else {
-		bopcookie_error(cookie, data, doc, error TSRMLS_CC);
-	}
-}
+    result->header.err = error;
+    zapval_alloc_stringl(
+            result->key, resp->v.v0.key, resp->v.v0.nkey);
+    alloc_cas(result->cas, resp->v.v0.cas TSRMLS_CC);
 
-static void arithmetic_callback(lcb_t instance, const void *cookie,
-		lcb_error_t error, const lcb_arithmetic_resp_t *resp) {
-	bopcookie *op = (bopcookie*)cookie;
-	bucket_object *data = op->owner;
-	zval *doc = bopcookie_get_doc(cookie, resp->v.v0.key, resp->v.v0.nkey);
-	TSRMLS_FETCH();
-
-	if (error == LCB_SUCCESS) {
-		if (metadoc_from_long(doc, resp->v.v0.value, resp->v.v0.cas, 0, 0 TSRMLS_CC) == FAILURE) {
-			bopcookie_error(cookie, data, doc, LCB_ERROR TSRMLS_CC);
-			return;
-		}
-	} else {
-		bopcookie_error(cookie, data, doc, error TSRMLS_CC);
-	}
+    opcookie_push((opcookie*)cookie, &result->header);
 }
 
 static void remove_callback(lcb_t instance, const void *cookie,
-		lcb_error_t error, const lcb_remove_resp_t *resp) {
-	bopcookie *op = (bopcookie*)cookie;
-	bucket_object *data = op->owner;
-	zval *doc = bopcookie_get_doc(cookie, resp->v.v0.key, resp->v.v0.nkey);
-	TSRMLS_FETCH();
+        lcb_error_t error, const lcb_remove_resp_t *resp) {
+    opcookie_store_res *result = ecalloc(1, sizeof(opcookie_store_res));
+    TSRMLS_FETCH();
 
-	if (error == LCB_SUCCESS) {
-		if (metadoc_create(doc, NULL, resp->v.v0.cas, 0, 0 TSRMLS_CC) == FAILURE) {
-			bopcookie_error(cookie, data, doc, LCB_ERROR TSRMLS_CC);
-			return;
-		}
-	} else {
-		bopcookie_error(cookie, data, doc, error TSRMLS_CC);
-	}
+    result->header.err = error;
+    zapval_alloc_stringl(
+            result->key, resp->v.v0.key, resp->v.v0.nkey);
+    alloc_cas(result->cas, resp->v.v0.cas TSRMLS_CC);
+
+    opcookie_push((opcookie*)cookie, &result->header);
 }
 
 static void touch_callback(lcb_t instance, const void *cookie,
-		lcb_error_t error, const lcb_touch_resp_t *resp) {
-	bopcookie *op = (bopcookie*)cookie;
-	bucket_object *data = op->owner;
-	zval *doc = bopcookie_get_doc(cookie, resp->v.v0.key, resp->v.v0.nkey);
-	TSRMLS_FETCH();
+        lcb_error_t error, const lcb_touch_resp_t *resp) {
+    opcookie_store_res *result = ecalloc(1, sizeof(opcookie_store_res));
+    TSRMLS_FETCH();
 
-	if (error == LCB_SUCCESS) {
-		if (metadoc_create(doc, NULL, resp->v.v0.cas, 0, 0 TSRMLS_CC) == FAILURE) {
-			bopcookie_error(cookie, data, doc, LCB_ERROR TSRMLS_CC);
-			return;
-		}
-	} else {
-		bopcookie_error(cookie, data, doc, error TSRMLS_CC);
-	}
+    result->header.err = error;
+    zapval_alloc_stringl(
+            result->key, resp->v.v0.key, resp->v.v0.nkey);
+    alloc_cas(result->cas, resp->v.v0.cas TSRMLS_CC);
+
+    opcookie_push((opcookie*)cookie, &result->header);
 }
+
+static lcb_error_t proc_store_results(bucket_object *bucket, zval *return_value,
+        opcookie *cookie, int is_mapped TSRMLS_DC)
+{
+    opcookie_store_res *res;
+    lcb_error_t err = LCB_SUCCESS;
+
+    // If we are not mapped, we need to throw any op errors
+    if (is_mapped == 0) {
+        err = opcookie_get_first_error(cookie);
+    }
+
+    if (err == LCB_SUCCESS) {
+        FOREACH_OPCOOKIE_RES(opcookie_store_res, res, cookie) {
+            zval *doc = bop_get_return_doc(
+                    return_value, &res->key, is_mapped);
+
+            if (res->header.err == LCB_SUCCESS) {
+                make_metadoc(doc, NULL, NULL, &res->cas TSRMLS_CC);
+            } else {
+                make_metadoc_error(doc, res->header.err TSRMLS_CC);
+            }
+        }
+    }
+
+    FOREACH_OPCOOKIE_RES(opcookie_store_res, res, cookie) {
+        zapval_destroy(res->key);
+        zapval_destroy(res->cas);
+    }
+
+    return err;
+}
+#define proc_remove_results proc_store_results
+#define proc_touch_results proc_store_results
+
+typedef struct {
+    opcookie_res header;
+    zapval key;
+    zapval value;
+    zapval cas;
+} opcookie_arithmetic_res;
+
+static void arithmetic_callback(lcb_t instance, const void *cookie,
+		lcb_error_t error, const lcb_arithmetic_resp_t *resp) {
+    opcookie_arithmetic_res *result = ecalloc(1, sizeof(opcookie_arithmetic_res));
+    TSRMLS_FETCH();
+
+    result->header.err = error;
+    zapval_alloc_stringl(
+            result->key, resp->v.v0.key, resp->v.v0.nkey);
+    zapval_alloc_long(result->value, resp->v.v0.value);
+    alloc_cas(result->cas, resp->v.v0.cas TSRMLS_CC);
+
+    opcookie_push((opcookie*)cookie, &result->header);
+}
+
+static lcb_error_t proc_arithmetic_results(bucket_object *bucket, zval *return_value,
+        opcookie *cookie, int is_mapped TSRMLS_DC)
+{
+    opcookie_arithmetic_res *res;
+    lcb_error_t err = LCB_SUCCESS;
+
+    // If we are not mapped, we need to throw any op errors
+    if (is_mapped == 0) {
+        err = opcookie_get_first_error(cookie);
+    }
+
+    if (err == LCB_SUCCESS) {
+        FOREACH_OPCOOKIE_RES(opcookie_arithmetic_res, res, cookie) {
+            zval *doc = bop_get_return_doc(
+                    return_value, &res->key, is_mapped);
+
+            if (res->header.err == LCB_SUCCESS) {
+                make_metadoc(doc, &res->value, NULL, &res->cas TSRMLS_CC);
+            } else {
+                make_metadoc_error(doc, res->header.err TSRMLS_CC);
+            }
+        }
+    }
+
+    FOREACH_OPCOOKIE_RES(opcookie_arithmetic_res, res, cookie) {
+        zapval_destroy(res->key);
+        zapval_destroy(res->value);
+        zapval_destroy(res->cas);
+    }
+
+    return err;
+}
+
+typedef struct {
+    opcookie_res header;
+    zapval key;
+} opcookie_durability_res;
+
+static void durability_callback(lcb_t instance, const void *cookie,
+            lcb_error_t error, const lcb_durability_resp_t *resp) {
+    opcookie_durability_res *result = ecalloc(1, sizeof(opcookie_durability_res));
+    TSRMLS_FETCH();
+
+    result->header.err = error;
+    zapval_alloc_stringl(
+            result->key, resp->v.v0.key, resp->v.v0.nkey);
+
+    opcookie_push((opcookie*)cookie, &result->header);
+
+}
+
+static lcb_error_t proc_durability_results(bucket_object *bucket, zval *return_value,
+        opcookie *cookie, int is_mapped TSRMLS_DC)
+{
+    opcookie_durability_res *res;
+    lcb_error_t err = LCB_SUCCESS;
+
+    // If we are not mapped, we need to throw any op errors
+    if (is_mapped == 0) {
+        err = opcookie_get_first_error(cookie);
+    }
+
+    if (err == LCB_SUCCESS) {
+        FOREACH_OPCOOKIE_RES(opcookie_durability_res, res, cookie) {
+            zval *doc = bop_get_return_doc(
+                    return_value, &res->key, is_mapped);
+
+            if (res->header.err == LCB_SUCCESS) {
+                make_metadoc(doc, NULL, NULL, NULL TSRMLS_CC);
+            } else {
+                make_metadoc_error(doc, res->header.err TSRMLS_CC);
+            }
+        }
+    }
+
+    FOREACH_OPCOOKIE_RES(opcookie_durability_res, res, cookie) {
+        zapval_destroy(res->key);
+    }
+
+    return err;
+}
+
+typedef struct {
+    opcookie_res header;
+    lcb_U16 rflags;
+    zapval row;
+} opcookie_n1qlrow_res;
 
 static void n1qlrow_callback(lcb_t instance, int ignoreme,
         const lcb_RESPN1QL *resp)
 {
-    bopcookie *op = (bopcookie*)resp->cookie;
-    bucket_object *data = op->owner;
-    zval *doc = bopcookie_get_doc(op, NULL, 0);
-    zval **results, *rowdata;
+    opcookie_n1qlrow_res *result = ecalloc(1, sizeof(opcookie_n1qlrow_res));
     TSRMLS_FETCH();
 
-    if (resp->rflags & LCB_RESP_F_FINAL)
-    {
-        MAKE_STD_ZVAL(rowdata);
-        ZVAL_STRINGL(rowdata, resp->row, resp->nrow, 1);
+    result->header.err = resp->rc;
+    result->rflags = resp->rflags;
+    zapval_alloc_stringl(
+            result->row, resp->row, resp->nrow);
 
-        add_assoc_zval(doc, "meta", rowdata);
-        return;
+    opcookie_push((opcookie*)resp->cookie, &result->header);
+}
+
+static lcb_error_t proc_n1qlrow_results(bucket_object *bucket, zval *return_value,
+        opcookie *cookie TSRMLS_DC)
+{
+    opcookie_n1qlrow_res *res;
+    lcb_error_t err = LCB_SUCCESS;
+
+    // Any error should cause everything to fail... for now?
+    err = opcookie_get_first_error(cookie);
+
+    if (err == LCB_SUCCESS) {
+        zval *results_array = NULL;
+        zapval zResults;
+        zapval_alloc_array(zResults);
+        array_init(return_value);
+        results_array = zap_hash_str_add(Z_ARRVAL_P(return_value), "results", 7,
+            zapval_zvalptr(zResults));
+
+        FOREACH_OPCOOKIE_RES(opcookie_n1qlrow_res, res, cookie) {
+            if (res->rflags & LCB_RESP_F_FINAL) {
+                zap_hash_str_add(Z_ARRVAL_P(return_value), "meta", 4,
+                        zapval_zvalptr(res->row));
+                zapval_addref(res->row);
+            } else {
+                zap_hash_next_index_insert(
+                        Z_ARRVAL_P(results_array), zapval_zvalptr(res->row));
+                zapval_addref(res->row);
+            }
+        }
     }
 
-    zend_hash_find(Z_ARRVAL_P(doc), "results", 8, (void**)&results);
+    FOREACH_OPCOOKIE_RES(opcookie_n1qlrow_res, res, cookie) {
+        zapval_destroy(res->row);
+    }
 
-    MAKE_STD_ZVAL(rowdata);
-    ZVAL_STRINGL(rowdata, resp->row, resp->nrow, 1);
-    add_next_index_zval(*results, rowdata);
+    return err;
 }
+
+typedef struct {
+    opcookie_res header;
+    zapval bytes;
+} opcookie_http_res;
 
 static void http_complete_callback(lcb_http_request_t request, lcb_t instance,
 			const void *cookie, lcb_error_t error,
 			const lcb_http_resp_t *resp) {
-	bopcookie *op = (bopcookie*)cookie;
-	bucket_object *data = op->owner;
-	zval *doc = bopcookie_get_doc(cookie, NULL, 0);
-	TSRMLS_FETCH();
+    opcookie_http_res *result = ecalloc(1, sizeof(opcookie_http_res));
+    TSRMLS_FETCH();
 
-	if (error == LCB_SUCCESS) {
-		ZVAL_STRINGL(doc, resp->v.v0.bytes, resp->v.v0.nbytes, 1);
-	} else {
-		bopcookie_error(cookie, data, NULL, error TSRMLS_CC);
-	}
+    result->header.err = error;
+    zapval_alloc_stringl(
+            result->bytes, resp->v.v0.bytes, resp->v.v0.nbytes);
+
+    opcookie_push((opcookie*)cookie, &result->header);
 }
 
-static void durability_callback(lcb_t instance, const void *cookie,
-			lcb_error_t error, const lcb_durability_resp_t *resp) {
-	bopcookie *op = (bopcookie*)cookie;
-	bucket_object *data = op->owner;
-	zval *doc = bopcookie_get_doc(cookie, resp->v.v0.key, resp->v.v0.nkey);
-	TSRMLS_FETCH();
-
-	if (error == LCB_SUCCESS) {
-		ZVAL_TRUE(doc);
-	} else {
-		bopcookie_error(cookie, data, doc, error TSRMLS_CC);
-	}
-}
-
-static int pcbc_wait(bucket_object *obj TSRMLS_DC)
+static lcb_error_t proc_http_results(bucket_object *bucket, zval *return_value,
+        opcookie *cookie TSRMLS_DC)
 {
-	lcb_t instance = obj->conn->lcb;
-	obj->error = NULL;
+    opcookie_http_res *res;
+    lcb_error_t err = LCB_SUCCESS;
 
-	lcb_wait(instance);
+    // Any error should cause everything to fail... for now?
+    err = opcookie_get_first_error(cookie);
 
-	if (obj->error) {
-		zend_throw_exception_object(obj->error TSRMLS_CC);
-		obj->error = NULL;
-		return 0;
-	}
+    if (err == LCB_SUCCESS) {
+        int has_value = 0;
+        FOREACH_OPCOOKIE_RES(opcookie_http_res, res, cookie) {
+            if (has_value == 0) {
+                zap_zval_zval_p(return_value, zapval_zvalptr(res->bytes), 1, 0);
+                has_value = 1;
+            } else {
+                err = LCB_ERROR;
+                break;
+            }
+        }
+    }
 
-	return 1;
+    FOREACH_OPCOOKIE_RES(opcookie_http_res, res, cookie) {
+        zapval_destroy(res->bytes);
+    }
+
+    return err;
 }
-
-zend_class_entry *bucket_ce;
 
 PHP_METHOD(Bucket, __construct)
 {
@@ -291,6 +506,16 @@ PHP_METHOD(Bucket, __construct)
 			&zdsn, &zname, &zpassword) == FAILURE) {
 		RETURN_NULL();
 	}
+
+	if (zap_zval_is_undef(zdsn)) {
+	    zdsn = NULL;
+	}
+    if (zap_zval_is_undef(zname)) {
+        zname = NULL;
+    }
+    if (zap_zval_is_undef(zpassword)) {
+        zpassword = NULL;
+    }
 
 	if (zdsn) {
 		if (Z_TYPE_P(zdsn) == IS_STRING) {
@@ -356,6 +581,7 @@ PHP_METHOD(Bucket, __construct)
 		}
 
 		lcb_set_get_callback(instance, get_callback);
+		lcb_set_unlock_callback(instance, unlock_callback);
 		lcb_set_store_callback(instance, store_callback);
 		lcb_set_arithmetic_callback(instance, arithmetic_callback);
 		lcb_set_remove_callback(instance, remove_callback);
@@ -406,8 +632,6 @@ PHP_METHOD(Bucket, __construct)
 	efree(connkey);
 }
 
-
-
 // insert($id, $doc {, $expiry, $groupid}) : MetaDoc
 PHP_METHOD(Bucket, insert)
 {
@@ -416,13 +640,15 @@ PHP_METHOD(Bucket, insert)
 	lcb_store_cmd_t **cmds = NULL;
 	int ii, num_cmds;
 	pcbc_pp_state pp_state;
-	zval *zid, *zvalue, *zexpiry, *zflags, *zgroupid;
-	bopcookie *cookie;
+	pcbc_pp_id id;
+	zval *zvalue, *zexpiry, *zflags, *zgroupid;
+	opcookie *cookie;
+    lcb_error_t err;
 
   // Note that groupid is experimental here and should not be used.
 	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
 	              "id|value|expiry,flags,groupid",
-				  &zid, &zvalue, &zexpiry, &zflags, &zgroupid) != SUCCESS)
+				  &id, &zvalue, &zexpiry, &zflags, &zgroupid) != SUCCESS)
 	{
         throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
         RETURN_NULL();
@@ -434,17 +660,16 @@ PHP_METHOD(Bucket, insert)
 	memset(cmd, 0, sizeof(lcb_store_cmd_t) * num_cmds);
 
 	for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
-		PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
-		PCBC_CHECK_ZVAL(zexpiry, IS_LONG, "expiry must be an integer");
-		PCBC_CHECK_ZVAL(zflags, IS_LONG, "flags must be an integer");
-		PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
+		PCBC_CHECK_ZVAL_LONG(zexpiry, "expiry must be an integer");
+		PCBC_CHECK_ZVAL_LONG(zflags, "flags must be an integer");
+		PCBC_CHECK_ZVAL_STRING(zgroupid, "groupid must be a string");
 
 		cmd[ii].version = 0;
 		cmd[ii].v.v0.operation = LCB_ADD;
-		cmd[ii].v.v0.key = Z_STRVAL_P(zid);
-		cmd[ii].v.v0.nkey = Z_STRLEN_P(zid);
+		cmd[ii].v.v0.key = id.str;
+		cmd[ii].v.v0.nkey = id.len;
 
-		pcbc_zval_to_bytes(data, zvalue, &cmd[ii].v.v0.bytes, &cmd[ii].v.v0.nbytes,
+		pcbc_encode_value(data, zvalue, &cmd[ii].v.v0.bytes, &cmd[ii].v.v0.nbytes,
 				&cmd[ii].v.v0.flags, &cmd[ii].v.v0.datatype TSRMLS_CC);
 
 		if (zexpiry) {
@@ -461,18 +686,28 @@ PHP_METHOD(Bucket, insert)
 		cmds[ii] = &cmd[ii];
 	}
 
-	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
+	cookie = opcookie_init();
 
-	lcb_store(data->conn->lcb, cookie,
+	err = lcb_store(data->conn->lcb, cookie,
 	        num_cmds, (const lcb_store_cmd_t*const*)cmds);
-	pcbc_wait(data TSRMLS_CC);
 
-	bopcookie_destroy(cookie);
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
+
+        err = proc_store_results(data, return_value,
+                cookie, pcbc_pp_ismapped(&pp_state) TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
     for (ii = 0; ii < num_cmds; ++ii) {
         efree((void*)cmds[ii]->v.v0.bytes);
     }
-	efree(cmds);
-	efree(cmd);
+    efree(cmds);
+    efree(cmd);
+
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
 }
 
 // upsert($id, $doc {, $expiry, $groupid}) : MetaDoc
@@ -483,13 +718,15 @@ PHP_METHOD(Bucket, upsert)
 	lcb_store_cmd_t **cmds = NULL;
 	int ii, num_cmds;
 	pcbc_pp_state pp_state;
-	zval *zid, *zvalue, *zexpiry, *zflags, *zgroupid;
-	bopcookie *cookie;
+	zval *zvalue, *zexpiry, *zflags, *zgroupid;
+	pcbc_pp_id id;
+	opcookie *cookie;
+    lcb_error_t err;
 
   // Note that groupid is experimental here and should not be used.
 	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
 	              "id|value|expiry,flags,groupid",
-				  &zid, &zvalue, &zexpiry, &zflags, &zgroupid) != SUCCESS)
+				  &id, &zvalue, &zexpiry, &zflags, &zgroupid) != SUCCESS)
 	{
 	    throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
 	    RETURN_NULL();
@@ -501,17 +738,16 @@ PHP_METHOD(Bucket, upsert)
 	memset(cmd, 0, sizeof(lcb_store_cmd_t) * num_cmds);
 
 	for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
-		PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
-		PCBC_CHECK_ZVAL(zexpiry, IS_LONG, "expiry must be an integer");
-		PCBC_CHECK_ZVAL(zflags, IS_LONG, "flags must be an integer");
-		PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
+		PCBC_CHECK_ZVAL_LONG(zexpiry, "expiry must be an integer");
+		PCBC_CHECK_ZVAL_LONG(zflags, "flags must be an integer");
+		PCBC_CHECK_ZVAL_STRING(zgroupid, "groupid must be a string");
 
 		cmd[ii].version = 0;
 		cmd[ii].v.v0.operation = LCB_SET;
-		cmd[ii].v.v0.key = Z_STRVAL_P(zid);
-		cmd[ii].v.v0.nkey = Z_STRLEN_P(zid);
+		cmd[ii].v.v0.key = id.str;
+		cmd[ii].v.v0.nkey = id.len;
 
-		pcbc_zval_to_bytes(data, zvalue, &cmd[ii].v.v0.bytes, &cmd[ii].v.v0.nbytes,
+		pcbc_encode_value(data, zvalue, &cmd[ii].v.v0.bytes, &cmd[ii].v.v0.nbytes,
 				&cmd[ii].v.v0.flags, &cmd[ii].v.v0.datatype TSRMLS_CC);
 
 		if (zexpiry) {
@@ -528,18 +764,28 @@ PHP_METHOD(Bucket, upsert)
 		cmds[ii] = &cmd[ii];
 	}
 
-	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
+	cookie = opcookie_init();
 
-	lcb_store(data->conn->lcb, cookie,
+	err = lcb_store(data->conn->lcb, cookie,
 	        num_cmds, (const lcb_store_cmd_t*const*)cmds);
-	pcbc_wait(data TSRMLS_CC);
 
-	bopcookie_destroy(cookie);
-	for (ii = 0; ii < num_cmds; ++ii) {
-	    efree((void*)cmds[ii]->v.v0.bytes);
-	}
-	efree(cmds);
-	efree(cmd);
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
+
+        err = proc_store_results(data, return_value,
+                cookie, pcbc_pp_ismapped(&pp_state) TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
+    for (ii = 0; ii < num_cmds; ++ii) {
+        efree((void*)cmds[ii]->v.v0.bytes);
+    }
+    efree(cmds);
+    efree(cmd);
+
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
 }
 
 // save($id, $doc {, $cas, $expiry, $groupid}) : MetaDoc
@@ -550,13 +796,15 @@ PHP_METHOD(Bucket, replace)
 	lcb_store_cmd_t **cmds = NULL;
 	int ii, num_cmds;
 	pcbc_pp_state pp_state;
-	zval *zid, *zvalue, *zcas, *zexpiry, *zflags, *zgroupid;
-	bopcookie *cookie;
+	pcbc_pp_id id;
+	zval *zvalue, *zcas, *zexpiry, *zflags, *zgroupid;
+	opcookie *cookie;
+    lcb_error_t err;
 
   // Note that groupid is experimental here and should not be used.
 	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
 	              "id|value|cas,expiry,flags,groupid",
-				  &zid, &zvalue, &zcas, &zexpiry, &zflags, &zgroupid) != SUCCESS)
+				  &id, &zvalue, &zcas, &zexpiry, &zflags, &zgroupid) != SUCCESS)
     {
         throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
         RETURN_NULL();
@@ -568,18 +816,17 @@ PHP_METHOD(Bucket, replace)
 	memset(cmd, 0, sizeof(lcb_store_cmd_t) * num_cmds);
 
 	for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
-		PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
-		PCBC_CHECK_ZVAL(zcas, IS_RESOURCE, "cas must be a CAS resource");
-		PCBC_CHECK_ZVAL(zexpiry, IS_LONG, "expiry must be an integer");
-		PCBC_CHECK_ZVAL(zflags, IS_LONG, "flags must be an integer");
-		PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
+		PCBC_CHECK_ZVAL_CAS(zcas, "cas must be a CAS resource");
+		PCBC_CHECK_ZVAL_LONG(zexpiry, "expiry must be an integer");
+		PCBC_CHECK_ZVAL_LONG(zflags, "flags must be an integer");
+		PCBC_CHECK_ZVAL_STRING(zgroupid, "groupid must be a string");
 
 		cmd[ii].version = 0;
 		cmd[ii].v.v0.operation = LCB_REPLACE;
-		cmd[ii].v.v0.key = Z_STRVAL_P(zid);
-		cmd[ii].v.v0.nkey = Z_STRLEN_P(zid);
+		cmd[ii].v.v0.key = id.str;
+		cmd[ii].v.v0.nkey = id.len;
 
-		pcbc_zval_to_bytes(data, zvalue, &cmd[ii].v.v0.bytes, &cmd[ii].v.v0.nbytes,
+		pcbc_encode_value(data, zvalue, &cmd[ii].v.v0.bytes, &cmd[ii].v.v0.nbytes,
 				&cmd[ii].v.v0.flags, &cmd[ii].v.v0.datatype TSRMLS_CC);
 
 		if (zcas) {
@@ -599,18 +846,28 @@ PHP_METHOD(Bucket, replace)
 		cmds[ii] = &cmd[ii];
 	}
 
-	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
+	cookie = opcookie_init();
 
-	lcb_store(data->conn->lcb, cookie,
+	err = lcb_store(data->conn->lcb, cookie,
 	        num_cmds, (const lcb_store_cmd_t*const*)cmds);
-	pcbc_wait(data TSRMLS_CC);
 
-	bopcookie_destroy(cookie);
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
+
+        err = proc_store_results(data, return_value,
+                cookie, pcbc_pp_ismapped(&pp_state) TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
     for (ii = 0; ii < num_cmds; ++ii) {
         efree((void*)cmds[ii]->v.v0.bytes);
     }
-	efree(cmds);
-	efree(cmd);
+    efree(cmds);
+    efree(cmd);
+
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
 }
 
 // append($id, $doc {, $cas, $groupid}) : MetaDoc
@@ -621,12 +878,14 @@ PHP_METHOD(Bucket, append)
 	lcb_store_cmd_t **cmds = NULL;
 	int ii, num_cmds;
 	pcbc_pp_state pp_state;
-	zval *zid, *zvalue, *zcas, *zgroupid;
-	bopcookie *cookie;
+	pcbc_pp_id id;
+	zval *zvalue, *zcas, *zgroupid;
+	opcookie *cookie;
+    lcb_error_t err;
 
   // Note that groupid is experimental here and should not be used.
 	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id|value|cas,groupid",
-				  &zid, &zvalue, &zcas, &zgroupid) != SUCCESS)
+				  &id, &zvalue, &zcas, &zgroupid) != SUCCESS)
     {
         throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
         RETURN_NULL();
@@ -638,16 +897,15 @@ PHP_METHOD(Bucket, append)
 	memset(cmd, 0, sizeof(lcb_store_cmd_t) * num_cmds);
 
 	for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
-		PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
-		PCBC_CHECK_ZVAL(zcas, IS_RESOURCE, "cas must be a CAS resource");
-		PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
+		PCBC_CHECK_ZVAL_CAS(zcas, "cas must be a CAS resource");
+		PCBC_CHECK_ZVAL_STRING(zgroupid, "groupid must be a string");
 
 		cmd[ii].version = 0;
 		cmd[ii].v.v0.operation = LCB_APPEND;
-		cmd[ii].v.v0.key = Z_STRVAL_P(zid);
-		cmd[ii].v.v0.nkey = Z_STRLEN_P(zid);
+		cmd[ii].v.v0.key = id.str;
+		cmd[ii].v.v0.nkey = id.len;
 
-		pcbc_zval_to_bytes(data, zvalue, &cmd[ii].v.v0.bytes, &cmd[ii].v.v0.nbytes,
+		pcbc_encode_value(data, zvalue, &cmd[ii].v.v0.bytes, &cmd[ii].v.v0.nbytes,
 				&cmd[ii].v.v0.flags, &cmd[ii].v.v0.datatype TSRMLS_CC);
 
 		if (zcas) {
@@ -664,18 +922,28 @@ PHP_METHOD(Bucket, append)
 		cmds[ii] = &cmd[ii];
 	}
 
-	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
+	cookie = opcookie_init();
 
-	lcb_store(data->conn->lcb, cookie,
+	err = lcb_store(data->conn->lcb, cookie,
 	        num_cmds, (const lcb_store_cmd_t*const*)cmds);
-	pcbc_wait(data TSRMLS_CC);
 
-	bopcookie_destroy(cookie);
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
+
+        err = proc_store_results(data, return_value,
+                cookie, pcbc_pp_ismapped(&pp_state) TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
     for (ii = 0; ii < num_cmds; ++ii) {
         efree((void*)cmds[ii]->v.v0.bytes);
     }
-	efree(cmds);
-	efree(cmd);
+    efree(cmds);
+    efree(cmd);
+
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
 }
 
 // append($id, $doc {, $cas, $groupid}) : MetaDoc
@@ -686,13 +954,15 @@ PHP_METHOD(Bucket, prepend)
 	lcb_store_cmd_t **cmds = NULL;
 	int ii, num_cmds;
 	pcbc_pp_state pp_state;
-	zval *zid, *zvalue, *zcas, *zgroupid;
-	bopcookie *cookie;
+	pcbc_pp_id id;
+	zval *zvalue, *zcas, *zgroupid;
+	opcookie *cookie;
+	lcb_error_t err;
 
   // Note that groupid is experimental here and should not be used.
 	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
 	              "id|value|cas,groupid",
-				  &zid, &zvalue, &zcas, &zgroupid) != SUCCESS)
+				  &id, &zvalue, &zcas, &zgroupid) != SUCCESS)
     {
         throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
         RETURN_NULL();
@@ -704,16 +974,15 @@ PHP_METHOD(Bucket, prepend)
 	memset(cmd, 0, sizeof(lcb_store_cmd_t) * num_cmds);
 
 	for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
-		PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
-		PCBC_CHECK_ZVAL(zcas, IS_RESOURCE, "cas must be a CAS resource");
-		PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
+		PCBC_CHECK_ZVAL_CAS(zcas, "cas must be a CAS resource");
+		PCBC_CHECK_ZVAL_STRING(zgroupid, "groupid must be a string");
 
 		cmd[ii].version = 0;
 		cmd[ii].v.v0.operation = LCB_PREPEND;
-		cmd[ii].v.v0.key = Z_STRVAL_P(zid);
-		cmd[ii].v.v0.nkey = Z_STRLEN_P(zid);
+		cmd[ii].v.v0.key = id.str;
+		cmd[ii].v.v0.nkey = id.len;
 
-		pcbc_zval_to_bytes(data, zvalue, &cmd[ii].v.v0.bytes, &cmd[ii].v.v0.nbytes,
+		pcbc_encode_value(data, zvalue, &cmd[ii].v.v0.bytes, &cmd[ii].v.v0.nbytes,
 				&cmd[ii].v.v0.flags, &cmd[ii].v.v0.datatype TSRMLS_CC);
 
 		if (zcas) {
@@ -730,18 +999,28 @@ PHP_METHOD(Bucket, prepend)
 		cmds[ii] = &cmd[ii];
 	}
 
-	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
+	cookie = opcookie_init();
 
-	lcb_store(data->conn->lcb, cookie,
+	err = lcb_store(data->conn->lcb, cookie,
 	        num_cmds, (const lcb_store_cmd_t*const*)cmds);
-	pcbc_wait(data TSRMLS_CC);
 
-	bopcookie_destroy(cookie);
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
+
+        err = proc_store_results(data, return_value,
+                cookie, pcbc_pp_ismapped(&pp_state) TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
     for (ii = 0; ii < num_cmds; ++ii) {
         efree((void*)cmds[ii]->v.v0.bytes);
     }
-	efree(cmds);
-	efree(cmd);
+    efree(cmds);
+    efree(cmd);
+
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
 }
 
 // remove($id {, $cas, $groupid}) : MetaDoc
@@ -752,12 +1031,14 @@ PHP_METHOD(Bucket, remove)
 	lcb_remove_cmd_t **cmds = NULL;
 	int ii, num_cmds;
 	pcbc_pp_state pp_state;
-	bopcookie *cookie;
-	zval *zid, *zcas, *zgroupid;
+	pcbc_pp_id id;
+	opcookie *cookie;
+	zval *zcas, *zgroupid;
+	lcb_error_t err;
 
   // Note that groupid is experimental here and should not be used.
 	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state, "id||cas,groupid",
-				  &zid, &zcas, &zgroupid) != SUCCESS)
+				  &id, &zcas, &zgroupid) != SUCCESS)
     {
         throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
         RETURN_NULL();
@@ -769,13 +1050,12 @@ PHP_METHOD(Bucket, remove)
 	memset(cmd, 0, sizeof(lcb_remove_cmd_t) * num_cmds);
 
 	for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
-		PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
-		PCBC_CHECK_ZVAL(zcas, IS_RESOURCE, "cas must be a CAS resource");
-		PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
+		PCBC_CHECK_ZVAL_CAS(zcas, "cas must be a CAS resource");
+		PCBC_CHECK_ZVAL_STRING(zgroupid, "groupid must be a string");
 
 		cmd[ii].version = 0;
-		cmd[ii].v.v0.key = Z_STRVAL_P(zid);
-		cmd[ii].v.v0.nkey = Z_STRLEN_P(zid);
+		cmd[ii].v.v0.key = id.str;
+		cmd[ii].v.v0.nkey = id.len;
 
 		if (zcas) {
 			cmd[ii].v.v0.cas = cas_retrieve(zcas TSRMLS_CC);
@@ -788,15 +1068,25 @@ PHP_METHOD(Bucket, remove)
 		cmds[ii] = &cmd[ii];
 	}
 
-	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
+	cookie = opcookie_init();
 
-	lcb_remove(data->conn->lcb, cookie,
+	err = lcb_remove(data->conn->lcb, cookie,
 	        num_cmds, (const lcb_remove_cmd_t*const*)cmds);
-	pcbc_wait(data TSRMLS_CC);
 
-	bopcookie_destroy(cookie);
-	efree(cmds);
-	efree(cmd);
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
+
+        err = proc_remove_results(data, return_value,
+                cookie, pcbc_pp_ismapped(&pp_state) TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
+    efree(cmds);
+    efree(cmd);
+
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
 }
 
 // touch($id {, $lock, $groupid}) : MetaDoc
@@ -807,13 +1097,15 @@ PHP_METHOD(Bucket, touch)
     lcb_touch_cmd_t **cmds = NULL;
     int ii, num_cmds;
     pcbc_pp_state pp_state;
-    zval *zid, *zexpiry, *zgroupid;
-    bopcookie *cookie;
+    pcbc_pp_id id;
+    zval *zexpiry, *zgroupid;
+    opcookie *cookie;
+    lcb_error_t err;
 
   // Note that groupid is experimental here and should not be used.
     if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
                   "id|expiry|groupid",
-                  &zid, &zexpiry, &zgroupid) != SUCCESS)
+                  &id, &zexpiry, &zgroupid) != SUCCESS)
     {
         throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
         RETURN_NULL();
@@ -825,13 +1117,12 @@ PHP_METHOD(Bucket, touch)
     memset(cmd, 0, sizeof(lcb_touch_cmd_t) * num_cmds);
 
     for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
-        PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
-        PCBC_CHECK_ZVAL(zexpiry, IS_LONG, "expiry must be an integer");
-        PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
+        PCBC_CHECK_ZVAL_LONG(zexpiry, "expiry must be an integer");
+        PCBC_CHECK_ZVAL_STRING(zgroupid, "groupid must be a string");
 
         cmd[ii].version = 0;
-        cmd[ii].v.v0.key = Z_STRVAL_P(zid);
-        cmd[ii].v.v0.nkey = Z_STRLEN_P(zid);
+        cmd[ii].v.v0.key = id.str;
+        cmd[ii].v.v0.nkey = id.len;
         cmd[ii].v.v0.exptime = Z_LVAL_P(zexpiry);
         if (zgroupid) {
             cmd[ii].v.v0.hashkey = Z_STRVAL_P(zgroupid);
@@ -841,15 +1132,25 @@ PHP_METHOD(Bucket, touch)
         cmds[ii] = &cmd[ii];
     }
 
-    cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
+    cookie = opcookie_init();
 
-    lcb_touch(data->conn->lcb, cookie,
+    err = lcb_touch(data->conn->lcb, cookie,
             num_cmds, (const lcb_touch_cmd_t*const*)cmds);
-    pcbc_wait(data TSRMLS_CC);
 
-    bopcookie_destroy(cookie);
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
+
+        err = proc_touch_results(data, return_value,
+                cookie, pcbc_pp_ismapped(&pp_state) TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
     efree(cmds);
     efree(cmd);
+
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
 }
 
 // get($id {, $lock, $groupid}) : MetaDoc
@@ -860,13 +1161,15 @@ PHP_METHOD(Bucket, get)
 	lcb_get_cmd_t **cmds = NULL;
 	int ii, num_cmds;
 	pcbc_pp_state pp_state;
-	zval *zid, *zlock, *zexpiry, *zgroupid;
-	bopcookie *cookie;
+	pcbc_pp_id id;
+	zval *zlock, *zexpiry, *zgroupid;
+	opcookie *cookie;
+	lcb_error_t err;
 
   // Note that groupid is experimental here and should not be used.
 	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
 				  "id||lockTime,expiry,groupid",
-				  &zid, &zlock, &zexpiry, &zgroupid) != SUCCESS)
+				  &id, &zlock, &zexpiry, &zgroupid) != SUCCESS)
     {
         throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
         RETURN_NULL();
@@ -878,14 +1181,13 @@ PHP_METHOD(Bucket, get)
 	memset(cmd, 0, sizeof(lcb_get_cmd_t) * num_cmds);
 
 	for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
-		PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
-		PCBC_CHECK_ZVAL(zlock, IS_LONG, "lock must be an integer");
-		PCBC_CHECK_ZVAL(zexpiry, IS_LONG, "expiry must be an integer");
-		PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
+		PCBC_CHECK_ZVAL_LONG(zlock, "lock must be an integer");
+		PCBC_CHECK_ZVAL_LONG(zexpiry, "expiry must be an integer");
+		PCBC_CHECK_ZVAL_STRING(zgroupid, "groupid must be a string");
 
 		cmd[ii].version = 0;
-		cmd[ii].v.v0.key = Z_STRVAL_P(zid);
-		cmd[ii].v.v0.nkey = Z_STRLEN_P(zid);
+		cmd[ii].v.v0.key = id.str;
+		cmd[ii].v.v0.nkey = id.len;
 		if (zexpiry) {
 			cmd[ii].v.v0.lock = 0;
 			cmd[ii].v.v0.exptime = Z_LVAL_P(zexpiry);
@@ -901,15 +1203,25 @@ PHP_METHOD(Bucket, get)
 		cmds[ii] = &cmd[ii];
 	}
 
-	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
+	cookie = opcookie_init();
 
-	lcb_get(data->conn->lcb, cookie,
+	err = lcb_get(data->conn->lcb, cookie,
 	        num_cmds, (const lcb_get_cmd_t*const*)cmds);
-	pcbc_wait(data TSRMLS_CC);
 
-	bopcookie_destroy(cookie);
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
+
+        err = proc_get_results(data, return_value,
+                cookie, pcbc_pp_ismapped(&pp_state) TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
 	efree(cmds);
 	efree(cmd);
+
+	if (err != LCB_SUCCESS) {
+	    throw_lcb_exception(err);
+	}
 }
 
 // get($id {, $lock, $groupid}) : MetaDoc
@@ -920,13 +1232,15 @@ PHP_METHOD(Bucket, getFromReplica)
 	lcb_get_replica_cmd_t **cmds = NULL;
 	int ii, num_cmds;
 	pcbc_pp_state pp_state;
-	zval *zid, *zindex, *zgroupid;
-	bopcookie *cookie;
+	pcbc_pp_id id;
+	zval *zindex, *zgroupid;
+	opcookie *cookie;
+	lcb_error_t err;
 
 	// Note that groupid is experimental here and should not be used.
 	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
 				  "id||index,groupid",
-				  &zid, &zindex, &zgroupid) != SUCCESS)
+				  &id, &zindex, &zgroupid) != SUCCESS)
     {
         throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
         RETURN_NULL();
@@ -938,13 +1252,12 @@ PHP_METHOD(Bucket, getFromReplica)
 	memset(cmd, 0, sizeof(lcb_get_replica_cmd_t) * num_cmds);
 
 	for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
-		PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
-		PCBC_CHECK_ZVAL(zindex, IS_LONG, "index must be an integer");
-		PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
+		PCBC_CHECK_ZVAL_LONG(zindex, "index must be an integer");
+		PCBC_CHECK_ZVAL_STRING(zgroupid, "groupid must be a string");
 
 		cmd[ii].version = 1;
-		cmd[ii].v.v1.key = Z_STRVAL_P(zid);
-		cmd[ii].v.v1.nkey = Z_STRLEN_P(zid);
+		cmd[ii].v.v1.key = id.str;
+		cmd[ii].v.v1.nkey = id.len;
 		if (zindex) {
 			cmd[ii].v.v1.index = Z_LVAL_P(zindex);
 			if (cmd[ii].v.v1.index >= 0) {
@@ -961,15 +1274,25 @@ PHP_METHOD(Bucket, getFromReplica)
 		cmds[ii] = &cmd[ii];
 	}
 
-	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
+	cookie = opcookie_init();
 
-	lcb_get_replica(data->conn->lcb, cookie,
+	err = lcb_get_replica(data->conn->lcb, cookie,
 	        num_cmds, (const lcb_get_replica_cmd_t*const*)cmds);
-	pcbc_wait(data TSRMLS_CC);
 
-	bopcookie_destroy(cookie);
-	efree(cmds);
-	efree(cmd);
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
+
+        err = proc_get_results(data, return_value,
+                cookie, pcbc_pp_ismapped(&pp_state) TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
+    efree(cmds);
+    efree(cmd);
+
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
 }
 
 // unlock($id {, $cas, $groupid}) : MetaDoc
@@ -980,13 +1303,15 @@ PHP_METHOD(Bucket, unlock)
 	lcb_unlock_cmd_t **cmds = NULL;
 	int ii, num_cmds;
 	pcbc_pp_state pp_state;
-	zval *zid, *zcas, *zgroupid;
-	bopcookie *cookie;
+	pcbc_pp_id id;
+	zval *zcas, *zgroupid;
+	opcookie *cookie;
+	lcb_error_t err;
 
   // Note that groupid is experimental here and should not be used.
 	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
 	              "id||cas,groupid",
-				  &zid, &zcas, &zgroupid) != SUCCESS)
+				  &id, &zcas, &zgroupid) != SUCCESS)
     {
         throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
         RETURN_NULL();
@@ -998,13 +1323,12 @@ PHP_METHOD(Bucket, unlock)
 	memset(cmd, 0, sizeof(lcb_unlock_cmd_t) * num_cmds);
 
 	for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
-		PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
-		PCBC_CHECK_ZVAL(zcas, IS_RESOURCE, "cas must be a CAS resource");
-		PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
+		PCBC_CHECK_ZVAL_CAS(zcas, "cas must be a CAS resource");
+		PCBC_CHECK_ZVAL_STRING(zgroupid, "groupid must be a string");
 
 		cmd[ii].version = 0;
-		cmd[ii].v.v0.key = Z_STRVAL_P(zid);
-		cmd[ii].v.v0.nkey = Z_STRLEN_P(zid);
+		cmd[ii].v.v0.key = id.str;
+		cmd[ii].v.v0.nkey = id.len;
 		if (zcas) {
 			cmd[ii].v.v0.cas = cas_retrieve(zcas TSRMLS_CC);
 		}
@@ -1016,15 +1340,25 @@ PHP_METHOD(Bucket, unlock)
 		cmds[ii] = &cmd[ii];
 	}
 
-	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
+	cookie = opcookie_init();
 
-	lcb_unlock(data->conn->lcb, cookie,
+	err = lcb_unlock(data->conn->lcb, cookie,
 	        num_cmds, (const lcb_unlock_cmd_t*const*)cmds);
-	pcbc_wait(data TSRMLS_CC);
 
-	bopcookie_destroy(cookie);
-	efree(cmds);
-	efree(cmd);
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
+
+        err = proc_unlock_results(data, return_value,
+                cookie, pcbc_pp_ismapped(&pp_state) TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
+    efree(cmds);
+    efree(cmd);
+
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
 }
 
 // counter($id, $delta {, $initial, $expiry}) : MetaDoc
@@ -1035,13 +1369,15 @@ PHP_METHOD(Bucket, counter)
 	lcb_arithmetic_cmd_t **cmds = NULL;
 	int ii, num_cmds;
 	pcbc_pp_state pp_state;
-	zval *zid, *zdelta, *zinitial, *zexpiry, *zgroupid;
-	bopcookie *cookie;
+	pcbc_pp_id id;
+	zval *zdelta, *zinitial, *zexpiry, *zgroupid;
+	opcookie *cookie;
+	lcb_error_t err;
 
   // Note that groupid is experimental here and should not be used.
 	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
 	              "id|delta|initial,expiry,groupid",
-				  &zid, &zdelta, &zinitial, &zexpiry, &zgroupid) != SUCCESS)
+				  &id, &zdelta, &zinitial, &zexpiry, &zgroupid) != SUCCESS)
     {
         throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
         RETURN_NULL();
@@ -1053,15 +1389,14 @@ PHP_METHOD(Bucket, counter)
 	memset(cmd, 0, sizeof(lcb_arithmetic_cmd_t) * num_cmds);
 
 	for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
-		PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
-		PCBC_CHECK_ZVAL(zdelta, IS_LONG, "delta must be an integer");
-		PCBC_CHECK_ZVAL(zinitial, IS_LONG, "initial must be an integer");
-		PCBC_CHECK_ZVAL(zexpiry, IS_LONG, "expiry must be an integer");
-		PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
+		PCBC_CHECK_ZVAL_LONG(zdelta, "delta must be an integer");
+		PCBC_CHECK_ZVAL_LONG(zinitial, "initial must be an integer");
+		PCBC_CHECK_ZVAL_LONG(zexpiry, "expiry must be an integer");
+		PCBC_CHECK_ZVAL_STRING(zgroupid, "groupid must be a string");
 
 		cmd[ii].version = 0;
-		cmd[ii].v.v0.key = Z_STRVAL_P(zid);
-		cmd[ii].v.v0.nkey = Z_STRLEN_P(zid);
+		cmd[ii].v.v0.key = id.str;
+		cmd[ii].v.v0.nkey = id.len;
 		cmd[ii].v.v0.delta = Z_LVAL_P(zdelta);
 		if (zinitial) {
 			cmd[ii].v.v0.initial = Z_LVAL_P(zinitial);
@@ -1078,24 +1413,110 @@ PHP_METHOD(Bucket, counter)
 		cmds[ii] = &cmd[ii];
 	}
 
-	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
+	cookie = opcookie_init();
 
-	lcb_arithmetic(data->conn->lcb, cookie,
+	err = lcb_arithmetic(data->conn->lcb, cookie,
 	        num_cmds, (const lcb_arithmetic_cmd_t*const*)cmds);
-	pcbc_wait(data TSRMLS_CC);
 
-	bopcookie_destroy(cookie);
-	efree(cmds);
-	efree(cmd);
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
+
+        err = proc_arithmetic_results(data, return_value,
+                cookie, pcbc_pp_ismapped(&pp_state) TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
+    efree(cmds);
+    efree(cmd);
+
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
+}
+
+PHP_METHOD(Bucket, durability)
+{
+    bucket_object *data = PHP_THISOBJ();
+    lcb_durability_cmd_t *cmd = NULL;
+    lcb_durability_opts_t opts = { 0 };
+    lcb_durability_cmd_t **cmds = NULL;
+    int ii, num_cmds;
+    pcbc_pp_state pp_state;
+    pcbc_pp_id id;
+    zval *zcas, *zgroupid, *zpersist, *zreplica;
+    opcookie *cookie;
+    lcb_error_t err;
+
+    if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
+                  "id||cas,groupid,persist_to,replicate_to",
+                  &id, &zcas, &zgroupid, &zpersist, &zreplica) != SUCCESS)
+    {
+        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
+        RETURN_NULL();
+    }
+
+    num_cmds = pcbc_pp_keycount(&pp_state);
+    cmd = emalloc(sizeof(lcb_durability_cmd_t) * num_cmds);
+    cmds = emalloc(sizeof(lcb_durability_cmd_t*) * num_cmds);
+    memset(cmd, 0, sizeof(lcb_durability_cmd_t) * num_cmds);
+
+    for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
+        PCBC_CHECK_ZVAL_CAS(zcas, "cas must be a CAS resource");
+        PCBC_CHECK_ZVAL_STRING(zgroupid, "groupid must be a string");
+        PCBC_CHECK_ZVAL_LONG(zpersist, "persist_to must be an integer");
+        PCBC_CHECK_ZVAL_LONG(zreplica, "replicate_to must be an integer");
+
+        cmd[ii].version = 0;
+        cmd[ii].v.v0.key = id.str;
+        cmd[ii].v.v0.nkey = id.len;
+        if (zcas) {
+            cmd[ii].v.v0.cas = cas_retrieve(zcas TSRMLS_CC);
+        }
+        if (zgroupid) {
+            cmd[ii].v.v0.hashkey = Z_STRVAL_P(zgroupid);
+            cmd[ii].v.v0.nhashkey = Z_STRLEN_P(zgroupid);
+        }
+
+        // These are written through each iteration, but only used once.
+        if (zpersist) {
+            opts.v.v0.persist_to = (lcb_U16)Z_LVAL_P(zpersist);
+        }
+        if (zreplica) {
+            opts.v.v0.replicate_to = (lcb_U16)Z_LVAL_P(zreplica);
+        }
+
+        cmds[ii] = &cmd[ii];
+    }
+
+    cookie = opcookie_init();
+
+    err = lcb_durability_poll(data->conn->lcb, cookie, &opts,
+            num_cmds, (const lcb_durability_cmd_t*const*)cmds);
+
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
+
+        err = proc_durability_results(data, return_value,
+                cookie, pcbc_pp_ismapped(&pp_state) TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
+    efree(cmds);
+    efree(cmd);
+
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
 }
 
 PHP_METHOD(Bucket, n1ql_request)
 {
     bucket_object *data = PHP_THISOBJ();
     lcb_CMDN1QL cmd = { 0 };
-    bopcookie *cookie;
+    opcookie *cookie;
     zval *zbody, *zadhoc;
-    zval *zResults;
+    zapval zResults;
+    lcb_error_t err;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz",
                 &zbody, &zadhoc) == FAILURE) {
@@ -1103,43 +1524,46 @@ PHP_METHOD(Bucket, n1ql_request)
         RETURN_NULL();
     }
 
-    PCBC_CHECK_ZVAL(zbody, IS_STRING, "body must be a string");
-    PCBC_CHECK_ZVAL(zadhoc, IS_BOOL, "adhoc must be a bool");
+    PCBC_CHECK_ZVAL_STRING(zbody, "body must be a string");
+    PCBC_CHECK_ZVAL_BOOL(zadhoc, "adhoc must be a bool");
 
     cmd.callback = n1qlrow_callback;
     cmd.content_type = "application/json";
     cmd.query = Z_STRVAL_P(zbody);
     cmd.nquery = Z_STRLEN_P(zbody);
 
-    if (Z_BVAL_P(zadhoc) == 0) {
+    if (zap_zval_boolval(zadhoc) == 0) {
         cmd.cmdflags |= LCB_CMDN1QL_F_PREPCACHE;
     }
 
-    cookie = bopcookie_init(data, return_value, 0);
-
-    // Setup basic structure
-    MAKE_STD_ZVAL(zResults);
-    array_init(zResults);
-
-    array_init(return_value);
-    add_assoc_zval(return_value, "results", zResults);
+    cookie = opcookie_init();
 
     // Execute query
-    lcb_n1ql_query(data->conn->lcb, cookie, &cmd);
-    pcbc_wait(data TSRMLS_CC);
+    err = lcb_n1ql_query(data->conn->lcb, cookie, &cmd);
 
-    bopcookie_destroy(cookie);
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
+
+        err = proc_n1qlrow_results(data, return_value, cookie TSRMLS_CC);
+    }
+
+    opcookie_destroy(cookie);
+
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
 }
 
 PHP_METHOD(Bucket, http_request)
 {
 	bucket_object *data = PHP_THISOBJ();
 	lcb_http_cmd_t cmd = { 0 };
-	bopcookie *cookie;
+	opcookie *cookie;
 	lcb_http_type_t type;
 	lcb_http_method_t method;
 	const char *contenttype;
 	zval *ztype, *zmethod, *zpath, *zbody, *zcontenttype;
+	lcb_error_t err;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zzzzz",
 				&ztype, &zmethod, &zpath, &zbody, &zcontenttype) == FAILURE) {
@@ -1189,77 +1613,21 @@ PHP_METHOD(Bucket, http_request)
 	cmd.v.v0.chunked = 0;
 	cmd.v.v0.content_type = contenttype;
 
-	cookie = bopcookie_init(data, return_value, 0);
+	cookie = opcookie_init();
 
-	lcb_make_http_request(data->conn->lcb, cookie, type, &cmd, NULL);
-	pcbc_wait(data TSRMLS_CC);
+	err = lcb_make_http_request(data->conn->lcb, cookie, type, &cmd, NULL);
 
-	bopcookie_destroy(cookie);
-}
+    if (err == LCB_SUCCESS) {
+        lcb_wait(data->conn->lcb);
 
-
-PHP_METHOD(Bucket, durability)
-{
-	bucket_object *data = PHP_THISOBJ();
-	lcb_durability_cmd_t *cmd = NULL;
-	lcb_durability_opts_t opts = { 0 };
-	lcb_durability_cmd_t **cmds = NULL;
-	int ii, num_cmds;
-	pcbc_pp_state pp_state;
-	zval *zid, *zcas, *zgroupid, *zpersist, *zreplica;
-	bopcookie *cookie;
-
-	if (pcbc_pp_begin(ZEND_NUM_ARGS() TSRMLS_CC, &pp_state,
-	              "id||cas,groupid,persist_to,replicate_to",
-				  &zid, &zcas, &zgroupid, &zpersist, &zreplica) != SUCCESS)
-    {
-        throw_pcbc_exception("Invalid arguments.", LCB_EINVAL);
-        RETURN_NULL();
+        err = proc_http_results(data, return_value, cookie TSRMLS_CC);
     }
 
-	num_cmds = pcbc_pp_keycount(&pp_state);
-	cmd = emalloc(sizeof(lcb_durability_cmd_t) * num_cmds);
-	cmds = emalloc(sizeof(lcb_durability_cmd_t*) * num_cmds);
-	memset(cmd, 0, sizeof(lcb_durability_cmd_t) * num_cmds);
+    opcookie_destroy(cookie);
 
-	for (ii = 0; pcbc_pp_next(&pp_state); ++ii) {
-		PCBC_CHECK_ZVAL(zid, IS_STRING, "id must be a string");
-		PCBC_CHECK_ZVAL(zcas, IS_RESOURCE, "cas must be a CAS resource");
-		PCBC_CHECK_ZVAL(zgroupid, IS_STRING, "groupid must be a string");
-		PCBC_CHECK_ZVAL(zpersist, IS_LONG, "persist_to must be an integer");
-		PCBC_CHECK_ZVAL(zreplica, IS_LONG, "replicate_to must be an integer");
-
-		cmd[ii].version = 0;
-		cmd[ii].v.v0.key = Z_STRVAL_P(zid);
-		cmd[ii].v.v0.nkey = Z_STRLEN_P(zid);
-		if (zcas) {
-			cmd[ii].v.v0.cas = cas_retrieve(zcas TSRMLS_CC);
-		}
-		if (zgroupid) {
-			cmd[ii].v.v0.hashkey = Z_STRVAL_P(zgroupid);
-			cmd[ii].v.v0.nhashkey = Z_STRLEN_P(zgroupid);
-		}
-
-		// These are written through each iteration, but only used once.
-		if (zpersist) {
-			opts.v.v0.persist_to = (lcb_U16)Z_LVAL_P(zpersist);
-		}
-		if (zreplica) {
-			opts.v.v0.replicate_to = (lcb_U16)Z_LVAL_P(zreplica);
-		}
-
-		cmds[ii] = &cmd[ii];
-	}
-
-	cookie = bopcookie_init(data, return_value, pcbc_pp_ismapped(&pp_state));
-
-	lcb_durability_poll(data->conn->lcb, cookie, &opts,
-	        num_cmds, (const lcb_durability_cmd_t*const*)cmds);
-	pcbc_wait(data TSRMLS_CC);
-
-	bopcookie_destroy(cookie);
-	efree(cmds);
-	efree(cmd);
+    if (err != LCB_SUCCESS) {
+        throw_lcb_exception(err);
+    }
 }
 
 
@@ -1272,13 +1640,11 @@ PHP_METHOD(Bucket, setTranscoder)
 		RETURN_NULL();
 	}
 
-	zval_ptr_dtor(&data->encoder);
-	MAKE_STD_ZVAL(data->encoder);
-	ZVAL_ZVAL(data->encoder, zencoder, 1, NULL);
+	zapval_destroy(data->encoder);
+	zapval_alloc_zval(data->encoder, zencoder, 1, 0);
 
-	zval_ptr_dtor(&data->decoder);
-	MAKE_STD_ZVAL(data->decoder);
-	ZVAL_ZVAL(data->decoder, zdecoder, 1, NULL);
+	zapval_destroy(data->decoder);
+	zapval_alloc_zval(data->decoder, zdecoder, 1, 0);
 
 	RETURN_NULL();
 }
@@ -1339,15 +1705,11 @@ zend_function_entry bucket_methods[] = {
 };
 
 void couchbase_init_bucket(INIT_FUNC_ARGS) {
-	zend_class_entry ce;
-
-	INIT_CLASS_ENTRY(ce, "_CouchbaseBucket", bucket_methods);
-	ce.create_object = bucket_create_handler;
-	bucket_ce = zend_register_internal_class(&ce TSRMLS_CC);
-
-	memcpy(&bucket_handlers,
-		zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-	bucket_handlers.clone_obj = NULL;
+    zap_init_class_entry(&bucket_class, "_CouchbaseBucket",
+            bucket_methods);
+    bucket_class.create_obj = bucket_create_handler;
+    bucket_class.free_obj = bucket_free_storage;
+    bucket_ce = zap_register_internal_class(&bucket_class, bucket_object);
 }
 
 void couchbase_shutdown_bucket(SHUTDOWN_FUNC_ARGS) {

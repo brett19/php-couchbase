@@ -8,6 +8,7 @@ if (PHP_COUCHBASE != "no") {
 		"couchbase.c " + 
 		"exception.c " +
 		"metadoc.c " +
+		"opcookie.c " +
 		"transcoding.c ";
 	
 	if (CHECK_LIB("libcouchbase.lib", "couchbase", PHP_COUCHBASE) &&

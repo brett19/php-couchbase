@@ -24,7 +24,7 @@ class BucketTest extends CouchbaseTestCase {
 
         $this->wrapException(function() use($h) {
             $h->openBucket('bad_bucket');
-        }, 'CouchbaseException', 25);
+        }, 'CouchbaseException');
     }
 
     /**
@@ -286,6 +286,50 @@ class BucketTest extends CouchbaseTestCase {
 
     /**
      * @test
+     * Test recursive transcoder functions
+     */
+    function testRecursiveTranscode() {
+        global $recursive_transcoder_bucket;
+        global $recursive_transcoder_key2;
+        global $recursive_transcoder_key3;
+        
+        $h = new CouchbaseCluster($this->testDsn);
+        $b = $h->openBucket();
+
+        $key1 = $this->makeKey('basicUpsertKey1');
+        $key2 = $this->makeKey('basicUpsertKey2');
+        $key3 = $this->makeKey('basicUpsertKey3');
+
+        // Set up a transcoder that upserts key2 when it sees key1
+        $recursive_transcoder_bucket = $b;
+        $recursive_transcoder_key2 = $key2;
+        $recursive_transcoder_key3 = $key3;
+        $b->setTranscoder(
+            'recursive_transcoder_encoder',  // defined at bottom of file
+            'recursive_transcoder_decoder'); // defined at bottom of file
+
+        // Upsert key1, transcoder should set key2
+        $res = $b->upsert($key1, 'key1');
+        $this->assertValidMetaDoc($res, 'cas');
+        
+        // Check key1 was upserted
+        $res = $b->get($key1);
+        $this->assertValidMetaDoc($res, 'cas');
+        $this->assertEquals($res->value, 'key1');
+        
+        // Check key2 was upserted, trasncoder should set key3
+        $res = $b->get($key2);
+        $this->assertValidMetaDoc($res, 'cas');
+        $this->assertEquals($res->value, 'key2');
+        
+        // Check key3 was upserted
+        $res = $b->get($key3);
+        $this->assertValidMetaDoc($res, 'cas');
+        $this->assertEquals($res->value, 'key3');
+    }
+
+    /**
+     * @test
      * Test all option values to make sure they save/load
      * We open a new bucket for this test to make sure our settings
      *   changes do not affect later tests
@@ -344,4 +388,24 @@ class BucketTest extends CouchbaseTestCase {
         $this->assertEquals($res->value, 'yes');
     }
 
+}
+
+function recursive_transcoder_encoder($value) {
+    global $recursive_transcoder_bucket;
+    global $recursive_transcoder_key2;
+    if ($value == 'key1') {
+        $recursive_transcoder_bucket->upsert(
+            $recursive_transcoder_key2, 'key2');
+    }
+    return couchbase_default_encoder($value);
+}
+function recursive_transcoder_decoder($bytes, $flags, $datatype) {
+    global $recursive_transcoder_bucket;
+    global $recursive_transcoder_key3;
+    $value = couchbase_default_decoder($bytes, $flags, $datatype);
+    if ($value == 'key2') {
+        $recursive_transcoder_bucket->upsert(
+            $recursive_transcoder_key3, 'key3');
+    }
+    return $value;
 }

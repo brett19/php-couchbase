@@ -60,7 +60,7 @@
             <file role="src" name="metadoc.h"/>
             <file role="src" name="paramparser.h"/>
             <file role="src" name="php_couchbase.h"/>
-            <file role="src" name="phphelpers.h"/>
+            <file role="src" name="zap.h"/>
             <file role="src" name="transcoding.c"/>
             <file role="src" name="transcoding.h"/>
             <file role="src" name="phpstubstr.h"/>

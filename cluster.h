@@ -1,13 +1,16 @@
 #ifndef CLUSTER_H_
 #define CLUSTER_H_
 
-#include <libcouchbase/couchbase.h>
 #include <php.h>
+#include "couchbase.h"
+#include "zap.h"
 
 typedef struct cluster_object {
-	zend_object std;
-	lcb_t lcb;
-	zval *error;
+    zap_ZEND_OBJECT_START
+
+    lcb_t lcb;
+
+    zap_ZEND_OBJECT_END
 } cluster_object;
 
 #endif // CLUSTER_H_
