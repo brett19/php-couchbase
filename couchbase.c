@@ -232,15 +232,15 @@ static zend_function_entry couchbase_functions[] = {
     {NULL, NULL, NULL}
 };
 
-#if ZEND_MODULE_API_NO >= 220050617
+#if ZEND_MODULE_API_NO >= 20050617
 static zend_module_dep php_couchbase_deps[] = {
-		ZEND_MODULE_REQUIRED("json"),
+        ZEND_MOD_REQUIRED("json")
 		{NULL,NULL,NULL}
 };
 #endif
 
 zend_module_entry couchbase_module_entry = {
-#if ZEND_MODULE_API_NO >= 220050617
+#if ZEND_MODULE_API_NO >= 20050617
 	STANDARD_MODULE_HEADER_EX,
 	NULL,
 	php_couchbase_deps,
