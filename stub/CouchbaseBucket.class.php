@@ -134,6 +134,7 @@ class CouchbaseBucket {
             $this->me->upsert($ids, $val, $options));
     }
 
+
     /**
      * Replaces a document.
      *
@@ -146,7 +147,7 @@ class CouchbaseBucket {
         return $this->_endure($ids, $options,
             $this->me->replace($ids, $val, $options));
     }
-    
+
     /**
      * Appends content to a document.
      *
@@ -159,7 +160,7 @@ class CouchbaseBucket {
         return $this->_endure($ids, $options,
             $this->me->append($ids, $val, $options));
     }
-    
+
     /**
      * Prepends content to a document.
      *
@@ -272,7 +273,7 @@ class CouchbaseBucket {
      * Executes a view query.
      *
      * @param ViewQuery $queryObj
-     * @return mixed
+     * @return CouchbaseResult
      * @throws CouchbaseException
      *
      * @internal
@@ -285,19 +286,25 @@ class CouchbaseBucket {
             if (isset($out['error'])) {
                 throw new CouchbaseException($out['error'] . ': ' . $out['reason']);
             }
+
+            $rows = $out['rows'];
+            $total = $out['total_rows'];
         } else {
             if (isset($out->error)) {
                 throw new CouchbaseException($out->error . ': ' . $out->reason);
             }
+
+            $rows = $out->rows;
+            $total = $out->total_rows;
         }
-        return $out;
+        return new CouchbaseResult($rows, $total);
     }
-    
+
     /**
      * Performs a N1QL query.
      *
      * @param $dmlstring
-     * @return mixed
+     * @return CouchbaseResult
      * @throws CouchbaseException
      *
      * @internal
@@ -311,7 +318,7 @@ class CouchbaseBucket {
         }
         $dataStr = json_encode($data, true);
         $dataOut = $this->me->n1ql_request($dataStr, $queryObj->adhoc);
-        
+
         $meta = json_decode($dataOut['meta'], true);
         if (isset($meta['errors']) && count($meta['errors']) > 0) {
             $err = $meta['errors'][0];
@@ -319,19 +326,19 @@ class CouchbaseBucket {
             $ex->qCode = $err['code'];
             throw $ex;
         }
-        
+
         $rows = array();
         foreach ($dataOut['results'] as $row) {
             $rows[] = json_decode($row, $json_asarray);
         }
-        return $rows;
+        return new CouchbaseResult($rows, $meta['metrics']['resultCount']);
     }
-    
+
     /**
      * Performs a query (either ViewQuery or N1qlQuery).
      *
      * @param CouchbaseQuery $query
-     * @return mixed
+     * @return CouchbaseResult
      * @throws CouchbaseException
      */
     public function query($query, $params = null, $json_asarray = false) {
@@ -410,7 +417,7 @@ class CouchbaseBucket {
                 'persist_to' => $options['persist_to'],
                 'replicate_to' => $options['replicate_to']
             ));
-            
+
             return $res;
         }
     }

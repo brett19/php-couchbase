@@ -1207,6 +1207,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "            $this->me->upsert($ids, $val, $options));\n" \
 "    }\n" \
 "\n" \
+"\n" \
 "    /**\n" \
 "     * Replaces a document.\n" \
 "     *\n" \
@@ -1219,7 +1220,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "        return $this->_endure($ids, $options,\n" \
 "            $this->me->replace($ids, $val, $options));\n" \
 "    }\n" \
-"    \n" \
+"\n" \
 "    /**\n" \
 "     * Appends content to a document.\n" \
 "     *\n" \
@@ -1232,7 +1233,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "        return $this->_endure($ids, $options,\n" \
 "            $this->me->append($ids, $val, $options));\n" \
 "    }\n" \
-"    \n" \
+"\n" \
 "    /**\n" \
 "     * Prepends content to a document.\n" \
 "     *\n" \
@@ -1345,7 +1346,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * Executes a view query.\n" \
 "     *\n" \
 "     * @param ViewQuery $queryObj\n" \
-"     * @return mixed\n" \
+"     * @return CouchbaseResult\n" \
 "     * @throws CouchbaseException\n" \
 "     *\n" \
 "     * @internal\n" \
@@ -1358,19 +1359,25 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "            if (isset($out['error'])) {\n" \
 "                throw new CouchbaseException($out['error'] . ': ' . $out['reason']);\n" \
 "            }\n" \
+"\n" \
+"            $rows = $out['rows'];\n" \
+"            $total = $out['total_rows'];\n" \
 "        } else {\n" \
 "            if (isset($out->error)) {\n" \
 "                throw new CouchbaseException($out->error . ': ' . $out->reason);\n" \
 "            }\n" \
+"\n" \
+"            $rows = $out->rows;\n" \
+"            $total = $out->total_rows;\n" \
 "        }\n" \
-"        return $out;\n" \
+"        return new CouchbaseResult($rows, $total);\n" \
 "    }\n" \
-"    \n" \
+"\n" \
 "    /**\n" \
 "     * Performs a N1QL query.\n" \
 "     *\n" \
 "     * @param $dmlstring\n" \
-"     * @return mixed\n" \
+"     * @return CouchbaseResult\n" \
 "     * @throws CouchbaseException\n" \
 "     *\n" \
 "     * @internal\n" \
@@ -1384,7 +1391,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "        }\n" \
 "        $dataStr = json_encode($data, true);\n" \
 "        $dataOut = $this->me->n1ql_request($dataStr, $queryObj->adhoc);\n" \
-"        \n" \
+"\n" \
 "        $meta = json_decode($dataOut['meta'], true);\n" \
 "        if (isset($meta['errors']) && count($meta['errors']) > 0) {\n" \
 "            $err = $meta['errors'][0];\n" \
@@ -1392,19 +1399,19 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "            $ex->qCode = $err['code'];\n" \
 "            throw $ex;\n" \
 "        }\n" \
-"        \n" \
+"\n" \
 "        $rows = array();\n" \
 "        foreach ($dataOut['results'] as $row) {\n" \
 "            $rows[] = json_decode($row, $json_asarray);\n" \
 "        }\n" \
-"        return $rows;\n" \
+"        return new CouchbaseResult($rows, $meta['metrics']['resultCount']);\n" \
 "    }\n" \
-"    \n" \
+"\n" \
 "    /**\n" \
 "     * Performs a query (either ViewQuery or N1qlQuery).\n" \
 "     *\n" \
 "     * @param CouchbaseQuery $query\n" \
-"     * @return mixed\n" \
+"     * @return CouchbaseResult\n" \
 "     * @throws CouchbaseException\n" \
 "     */\n" \
 "    public function query($query, $params = null, $json_asarray = false) {\n" \
@@ -1483,7 +1490,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "                'persist_to' => $options['persist_to'],\n" \
 "                'replicate_to' => $options['replicate_to']\n" \
 "            ));\n" \
-"            \n" \
+"\n" \
 "            return $res;\n" \
 "        }\n" \
 "    }\n" \
@@ -1703,5 +1710,130 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "        return json_decode($res, true);\n" \
 "    }\n" \
 "} \n" \
+""},
+{"[CouchbaseNative]/CouchbaseResult.class.php","\n" \
+"/**\n" \
+" * File for the CouchbaseResult class.\n" \
+" *\n" \
+" * @author Sylvain Robez-Masson <srm@bouh.org>\n" \
+" */\n" \
+"\n" \
+"/**\n" \
+" * Represents a couchbase result.\n" \
+" *\n" \
+" * Note: This class must be constructed by calling the query\n" \
+" * method of the CouchbaseBucket class.\n" \
+" *\n" \
+" * @property array $rows\n" \
+" * @property int $rowsCount\n" \
+" * @property integer $offset\n" \
+" *\n" \
+" * @package Couchbase\n" \
+" *\n" \
+" * @see CouchbaseBucket::query()\n" \
+" */\n" \
+"class CouchbaseResult implements Iterator, Countable {\n" \
+"\n" \
+"    /**\n" \
+"     * @var array\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * All the rows of the result.\n" \
+"     */\n" \
+"    private $rows;\n" \
+"\n" \
+"    /**\n" \
+"     * @var int\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * Total of rows.\n" \
+"     */\n" \
+"    private $rowsCount;\n" \
+"\n" \
+"    /**\n" \
+"     * @var integer\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * Offset of the iterator.\n" \
+"     */\n" \
+"    private $offset;\n" \
+"\n" \
+"    /**\n" \
+"     * Constructs a couchbase result.\n" \
+"     *\n" \
+"     * @private\n" \
+"     * @ignore\n" \
+"     *\n" \
+"     * @param array $rows All the rows returned by a query.\n" \
+"     * @param int $rowsCount\n" \
+"     *\n" \
+"     * @private\n" \
+"     */\n" \
+"    public function __construct(array $rows, $rowsCount) {\n" \
+"        $this->rows = $rows;\n" \
+"        $this->rowsCount = (int) $rowsCount;\n" \
+"        $this->offset = 0;\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Retrieve current item of iterator.\n" \
+"     *\n" \
+"     * @return mixed\n" \
+"     */\n" \
+"    public function current()\n" \
+"    {\n" \
+"        return $this->rows[$this->offset];\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Iterator to the next row.\n" \
+"     *\n" \
+"     * @return void\n" \
+"     */\n" \
+"    public function next()\n" \
+"    {\n" \
+"        ++$this->offset;\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Retrieve key of the current row.\n" \
+"     *\n" \
+"     * @return int\n" \
+"     */\n" \
+"    public function key()\n" \
+"    {\n" \
+"        return $this->offset;\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Check if the iterator is still valid.\n" \
+"     *\n" \
+"     * @return bool\n" \
+"     */\n" \
+"    public function valid()\n" \
+"    {\n" \
+"        return isset($this->rows[$this->offset]);\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Rewind iterator\n" \
+"     *\n" \
+"     * @return void\n" \
+"     */\n" \
+"    public function rewind()\n" \
+"    {\n" \
+"        $this->offset = 0;\n" \
+"    }\n" \
+"\n" \
+"    /**\n" \
+"     * Count elements of an object\n" \
+"     *\n" \
+"     * @return int\n" \
+"     */\n" \
+"    public function count()\n" \
+"    {\n" \
+"        return $this->rowsCount;\n" \
+"    }\n" \
+"}\n" \
 ""},
 };
