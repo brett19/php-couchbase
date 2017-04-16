@@ -190,7 +190,7 @@ class CouchbaseBucket {
      *
      * @param string|array $ids
      * @param array $options lock
-     * @return mixed
+     * @return CouchbaseMetaDoc
      */
     public function get($ids, $options = array()) {
         return $this->me->get($ids, $options);
@@ -202,7 +202,7 @@ class CouchbaseBucket {
      * @param string $id
      * @param integer $expiry
      * @param array $options
-     * @return mixed
+     * @return CouchbaseMetaDoc
      */
     public function getAndTouch($id, $expiry, $options = array()) {
         $options['expiry'] = $expiry;
@@ -215,7 +215,7 @@ class CouchbaseBucket {
      * @param string $id
      * @param integer $lockTime
      * @param array $options
-     * @return mixed
+     * @return CouchbaseMetaDoc
      */
     public function getAndLock($id, $lockTime, $options = array()) {
         $options['lockTime'] = $lockTime;
@@ -227,7 +227,7 @@ class CouchbaseBucket {
      *
      * @param string $id
      * @param array $options
-     * @return mixed
+     * @return CouchbaseMetaDoc
      */
     public function getFromReplica($id, $options = array()) {
         return $this->me->getFromReplica($id, $options);
@@ -262,7 +262,7 @@ class CouchbaseBucket {
      * Unlocks a key previous locked with a call to get().
      * @param string|array $ids
      * @param array $options cas
-     * @return mixed
+     * @return CouchbaseMetaDoc
      */
     public function unlock($ids, $options = array()) {
         return $this->me->unlock($ids, $options);
@@ -378,6 +378,7 @@ class CouchbaseBucket {
         if (is_array($res)) {
             // Build list of keys to check
             $chks = array();
+            /** @var CouchbaseMetaDoc $result */
             foreach ($res as $key => $result) {
                 if (!$result->error) {
                     $chks[$key] = array(
@@ -401,6 +402,7 @@ class CouchbaseBucket {
 
             return $res;
         } else {
+            /** @var CouchbaseMetaDoc $res */
             if ($res->error) {
                 return $res;
             }

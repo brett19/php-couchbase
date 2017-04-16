@@ -1263,7 +1263,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     *\n" \
 "     * @param string|array $ids\n" \
 "     * @param array $options lock\n" \
-"     * @return mixed\n" \
+"     * @return CouchbaseMetaDoc\n" \
 "     */\n" \
 "    public function get($ids, $options = array()) {\n" \
 "        return $this->me->get($ids, $options);\n" \
@@ -1275,7 +1275,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * @param string $id\n" \
 "     * @param integer $expiry\n" \
 "     * @param array $options\n" \
-"     * @return mixed\n" \
+"     * @return CouchbaseMetaDoc\n" \
 "     */\n" \
 "    public function getAndTouch($id, $expiry, $options = array()) {\n" \
 "        $options['expiry'] = $expiry;\n" \
@@ -1288,7 +1288,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * @param string $id\n" \
 "     * @param integer $lockTime\n" \
 "     * @param array $options\n" \
-"     * @return mixed\n" \
+"     * @return CouchbaseMetaDoc\n" \
 "     */\n" \
 "    public function getAndLock($id, $lockTime, $options = array()) {\n" \
 "        $options['lockTime'] = $lockTime;\n" \
@@ -1300,7 +1300,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     *\n" \
 "     * @param string $id\n" \
 "     * @param array $options\n" \
-"     * @return mixed\n" \
+"     * @return CouchbaseMetaDoc\n" \
 "     */\n" \
 "    public function getFromReplica($id, $options = array()) {\n" \
 "        return $this->me->getFromReplica($id, $options);\n" \
@@ -1335,7 +1335,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "     * Unlocks a key previous locked with a call to get().\n" \
 "     * @param string|array $ids\n" \
 "     * @param array $options cas\n" \
-"     * @return mixed\n" \
+"     * @return CouchbaseMetaDoc\n" \
 "     */\n" \
 "    public function unlock($ids, $options = array()) {\n" \
 "        return $this->me->unlock($ids, $options);\n" \
@@ -1451,6 +1451,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "        if (is_array($res)) {\n" \
 "            // Build list of keys to check\n" \
 "            $chks = array();\n" \
+"            /** @var CouchbaseMetaDoc $result */\n" \
 "            foreach ($res as $key => $result) {\n" \
 "                if (!$result->error) {\n" \
 "                    $chks[$key] = array(\n" \
@@ -1474,6 +1475,7 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "\n" \
 "            return $res;\n" \
 "        } else {\n" \
+"            /** @var CouchbaseMetaDoc $res */\n" \
 "            if ($res->error) {\n" \
 "                return $res;\n" \
 "            }\n" \
@@ -1704,4 +1706,29 @@ pcbc_stub_data PCBC_PHP_CODESTR[] = {
 "    }\n" \
 "} \n" \
 ""},
+{"[CouchbaseNative]/CouchbaseException.class.php","\n" \
+"/**\n" \
+" * Custom CouchbaseException stub\n" \
+" *\n" \
+" * @package Couchbase\n" \
+" */\n" \
+"class CouchbaseException extends Exception\n" \
+"{}\n" \
+""},
+{"[CouchbaseNative]/CouchbaseMetaDoc.class.php","\n" \
+"\n" \
+"/**\n" \
+" * Class CouchbaseMetaDoc\n" \
+" * This class has no methods, but is used by CouchbaseBucket\n" \
+" * Represents a couchbase document & meta\n" \
+" *\n" \
+" * @package Couchbase\n" \
+" */\n" \
+"class CouchbaseMetaDoc\n" \
+"{\n" \
+"    public $error = null;\n" \
+"    public $value = null;\n" \
+"    public $flags = null;\n" \
+"    public $case = null;\n" \
+"}\n" \""},
 };
